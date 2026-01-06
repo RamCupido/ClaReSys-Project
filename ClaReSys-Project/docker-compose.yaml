@@ -1,0 +1,229 @@
+services:
+  # --- PostgreSQL Database Service for classroom-service ---
+  classroom-db:
+    image: postgres:15-alpine
+    container_name: classroom_db_container
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: classroom_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - classroom_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d classroom_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Classroom Service
+  classroom-service:
+    build:
+      context: .
+      dockerfile: apps/classroom-service/Dockerfile
+    container_name: classroom_service_container
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://admin:${DB_PASSWORD}@classroom-db:5432/classroom_db
+    # wait until the database is healthy before starting
+    depends_on:
+      classroom-db:
+        condition: service_healthy
+    volumes:
+      - ./apps/classroom-service/src:/app/src
+      - ./packages/common/src:/app/packages/common/src
+
+  # Timetable Engine Service
+  timetable-engine:
+    build:
+      context: ./apps/timetable-engine
+      dockerfile: Dockerfile
+    container_name: timetable_engine_container
+    ports:
+      - "50051:50051"
+    environment:
+      PYTHONUNBUFFERED: 1
+
+  # --- PostgreSQL Database Service for booking-command ---
+  booking-db:
+    image: postgres:15-alpine
+    container_name: booking_db_container
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: booking_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - booking_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d booking_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- RabbitMQ Service ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq_container
+    ports:
+      - "5672:5672"   # Port for RabbitMQ messaging
+      - "15672:15672" # Port for RabbitMQ management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Booking Command Service
+  booking-command:
+    build:
+      context: .
+      dockerfile: apps/booking-command/Dockerfile
+    container_name: booking_command_container
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql://admin:${DB_PASSWORD}@booking-db:5432/booking_db
+      CLASSROOM_SERVICE_URL: http://classroom-service:8000
+      TIMETABLE_SERVICE_HOST: timetable-engine
+      TIMETABLE_SERVICE_PORT: 50051
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+    depends_on:
+      booking-db:
+        condition: service_healthy
+      classroom-service:
+        condition: service_started
+      timetable-engine:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./apps/booking-command/src:/app/src
+      - ./apps/timetable-engine/protos:/app/protos
+
+  # --- Redis Service ---
+  redis:
+    image: redis:7-alpine
+    container_name: redis_container
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Booking Query Service
+  booking-query:
+    build:
+      context: .
+      dockerfile: apps/booking-query/Dockerfile
+    container_name: booking_query_container
+    ports:
+      - "8002:8000"
+    environment:
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  # --- INFRASTRUCTURE: EMAIL (Simulation) ---
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog_container
+    ports:
+      - "1025:1025" # Port SMTP
+      - "8025:8025" # Web UI
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    container_name: notification_service_container
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      SMTP_HOST: mailhog
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+  # --- PostgreSQL Database Service for User Service ---
+  users-db:
+    image: postgres:15-alpine
+    container_name: users_db_container
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: users_db
+    volumes:
+      - users_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d users_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/Dockerfile
+    container_name: user_service_container
+    ports:
+      - "8004:8000"
+    environment:
+      DATABASE_URL: postgresql://admin:${DB_PASSWORD}@users-db:5432/users_db
+    depends_on:
+      users-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    container_name: auth_service_container
+    ports:
+      - "8003:8000"
+    environment:
+      USER_SERVICE_HOST: user-service
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      user-service:
+        condition: service_healthy
+
+  # --- API Gateway Service ---
+  api-gateway:
+    build:
+      context: ./apps/api-gateway
+      dockerfile: Dockerfile
+    container_name: api_gateway_container
+    ports:
+      - "8080:80"
+    depends_on:
+      - auth-service
+      - booking-command
+      - booking-query
+      - classroom-service
+
+volumes:
+  classroom_data:
+  booking_data:
+  users_data:

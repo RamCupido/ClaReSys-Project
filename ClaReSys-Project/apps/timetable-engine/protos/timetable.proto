@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package timetable;
+
+// El servicio que vamos a exponer
+service TimetableChecker {
+  // Función: Recibe una solicitud y devuelve un booleano
+  rpc CheckAvailability (CheckRequest) returns (CheckResponse);
+}
+
+// Mensaje para definir un rango de tiempo
+message TimeRange {
+  string start = 1; // Formato ISO 8601 string
+  string end = 2;
+}
+
+// Input: El horario que quiero reservar vs. los que ya existen
+message CheckRequest {
+  TimeRange candidate = 1;
+  repeated TimeRange existing_bookings = 2;
+}
+
+// Output: ¿Hay conflicto?
+message CheckResponse {
+  bool has_conflict = 1;
+  string conflict_details = 2;
+}
