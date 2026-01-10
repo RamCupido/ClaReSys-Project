@@ -29,11 +29,13 @@ node_modules
 
 # Local env files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-venv
+.env.*
+!.env.example
+.venv
+venv/
+
+#Logs
+*.log
 
 # Testing
 coverage
@@ -61,10 +63,11 @@ yarn-error.log*
 *.pem
 
 # Directorios locales de Terraform
-.terraform/
-*.tfstate
-*.tfstate.
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
 crash.log
+crash.*.log
 *.tfvars.secret
 *.tfvars.secret.json
 .terraformrc
