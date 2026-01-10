@@ -4,16 +4,18 @@ services:
     image: postgres:15-alpine
     container_name: classroom_db_container
     restart: always
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: admin
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: classroom_db
+      POSTGRES_DB: ${CLASSROOM_DB_NAME}
     ports:
       - "5432:5432"
     volumes:
       - classroom_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d classroom_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${CLASSROOM_DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,14 +26,21 @@ services:
       context: .
       dockerfile: apps/classroom-service/Dockerfile
     container_name: classroom_service_container
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql://admin:${DB_PASSWORD}@classroom-db:5432/classroom_db
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${CLASSROOM_DB_HOST}:${CLASSROOM_DB_PORT}/${CLASSROOM_DB_NAME}"
     # wait until the database is healthy before starting
     depends_on:
       classroom-db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     volumes:
       - ./apps/classroom-service/src:/app/src
       - ./packages/common/src:/app/packages/common/src
@@ -46,22 +55,29 @@ services:
       - "50051:50051"
     environment:
       PYTHONUNBUFFERED: 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1', 50051)); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # --- PostgreSQL Database Service for booking-command ---
   booking-db:
     image: postgres:15-alpine
     container_name: booking_db_container
     restart: always
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: admin
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: booking_db
+      POSTGRES_DB: ${BOOKING_DB_NAME}
     ports:
       - "5433:5432"
     volumes:
       - booking_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d booking_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${BOOKING_DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -88,12 +104,12 @@ services:
     ports:
       - "8001:8000"
     environment:
-      DATABASE_URL: postgresql://admin:${DB_PASSWORD}@booking-db:5432/booking_db
-      CLASSROOM_SERVICE_URL: http://classroom-service:8000
-      TIMETABLE_SERVICE_HOST: timetable-engine
-      TIMETABLE_SERVICE_PORT: 50051
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${BOOKING_DB_HOST}:${BOOKING_DB_PORT}/${BOOKING_DB_NAME}"
+      CLASSROOM_SERVICE_URL: "http://${CLASSROOM_SERVICE_HOST}:${CLASSROOM_SERVICE_PORT}"
+      TIMETABLE_SERVICE_HOST: ${TIMETABLE_SERVICE_HOST}
+      TIMETABLE_SERVICE_PORT: ${TIMETABLE_SERVICE_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
     depends_on:
       booking-db:
         condition: service_healthy
@@ -103,6 +119,11 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     volumes:
       - ./apps/booking-command/src:/app/src
       - ./apps/timetable-engine/protos:/app/protos
@@ -128,13 +149,18 @@ services:
     ports:
       - "8002:8000"
     environment:
-      REDIS_HOST: redis
-      RABBITMQ_HOST: rabbitmq
+      REDIS_HOST: ${REDIS_HOST}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
     depends_on:
       redis:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # --- INFRASTRUCTURE: EMAIL (Simulation) ---
   mailhog:
@@ -150,9 +176,11 @@ services:
       context: .
       dockerfile: apps/notification-service/Dockerfile
     container_name: notification_service_container
+    env_file:
+      - .env
     environment:
-      RABBITMQ_HOST: rabbitmq
-      SMTP_HOST: mailhog
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      SMTP_HOST: ${SMTP_HOST}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -164,13 +192,13 @@ services:
     image: postgres:15-alpine
     container_name: users_db_container
     environment:
-      POSTGRES_USER: admin
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: users_db
+      POSTGRES_DB: ${USERS_DB_NAME}
     volumes:
       - users_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d users_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${USERS_DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -184,7 +212,7 @@ services:
     ports:
       - "8004:8000"
     environment:
-      DATABASE_URL: postgresql://admin:${DB_PASSWORD}@users-db:5432/users_db
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${USERS_DB_HOST}:${USERS_DB_PORT}/${USERS_DB_NAME}"
     depends_on:
       users-db:
         condition: service_healthy
@@ -208,6 +236,11 @@ services:
     depends_on:
       user-service:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # --- API Gateway Service ---
   api-gateway:
@@ -218,10 +251,14 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - auth-service
-      - booking-command
-      - booking-query
-      - classroom-service
+      auth-service:
+        condition: service_healthy
+      booking-command:
+        condition: service_healthy
+      booking-query:
+        condition: service_healthy
+      classroom-service:
+        condition: service_healthy
 
 volumes:
   classroom_data:
