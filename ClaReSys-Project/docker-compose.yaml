@@ -14,6 +14,7 @@ services:
       - "5432:5432"
     volumes:
       - classroom_data:/var/lib/postgresql/data
+      - ./apps/classroom-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${CLASSROOM_DB_NAME}"]
       interval: 5s
@@ -76,6 +77,7 @@ services:
       - "5433:5432"
     volumes:
       - booking_data:/var/lib/postgresql/data
+      - ./apps/booking-command/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${BOOKING_DB_NAME}"]
       interval: 5s
@@ -101,6 +103,8 @@ services:
       context: .
       dockerfile: apps/booking-command/Dockerfile
     container_name: booking_command_container
+    env_file:
+      - .env
     ports:
       - "8001:8000"
     environment:
@@ -146,6 +150,8 @@ services:
       context: .
       dockerfile: apps/booking-query/Dockerfile
     container_name: booking_query_container
+    env_file:
+      - .env
     ports:
       - "8002:8000"
     environment:
@@ -191,12 +197,15 @@ services:
   users-db:
     image: postgres:15-alpine
     container_name: users_db_container
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${USERS_DB_NAME}
     volumes:
       - users_data:/var/lib/postgresql/data
+      - ./apps/user-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${USERS_DB_NAME}"]
       interval: 5s
@@ -209,6 +218,8 @@ services:
       context: .
       dockerfile: apps/user-service/Dockerfile
     container_name: user_service_container
+    env_file:
+      - .env
     ports:
       - "8004:8000"
     environment:
@@ -228,11 +239,14 @@ services:
       context: .
       dockerfile: apps/auth-service/Dockerfile
     container_name: auth_service_container
+    env_file:
+      - .env
     ports:
       - "8003:8000"
     environment:
       USER_SERVICE_HOST: user-service
       SECRET_KEY: ${SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
     depends_on:
       user-service:
         condition: service_healthy

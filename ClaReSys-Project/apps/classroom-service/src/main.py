@@ -11,7 +11,6 @@ app.include_router(router, prefix="/api/v1/classrooms", tags=["classrooms"])
 
 @app.on_event("startup")
 async def startup_event():
-    Base.metadata.create_all(bind=engine)
     logger.info("Classroom Service is starting up...")
 
 @app.get("/health")

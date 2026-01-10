@@ -8,6 +8,10 @@ COPY apps/user-service/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY packages/common /packages/common
+
+RUN pip install -e /packages/common
+
 COPY apps/user-service/ .
 
 RUN python -m grpc_tools.protoc -I./protos --python_out=./src --grpc_python_out=./src ./protos/user.proto

@@ -3,9 +3,12 @@ from passlib.context import CryptContext
 from jose import jwt
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecreto123")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is not set")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

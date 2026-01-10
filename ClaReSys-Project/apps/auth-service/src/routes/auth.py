@@ -30,7 +30,7 @@ def login(request: LoginRequest, user_gateway: UserGateway = Depends(get_user_ga
         raise HTTPException(status_code=401, detail="Credenciales incorrectas (Password erróneo)")
         
     access_token = create_access_token(
-        data={"sub": user.id, "role": user.role}
+        data={"sub": str(user.id), "role": user.role}
     )
     
     return {

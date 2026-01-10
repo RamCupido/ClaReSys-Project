@@ -12,8 +12,11 @@ class TokenData(BaseModel):
 # Note: The URL is for reference purposes only; it doesn't actually need to exist in each service.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-SECRET_KEY = os.getenv("SECRET_KEY", "mi_clave_secreta_para_desarrollo")
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY is not set")
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
     """

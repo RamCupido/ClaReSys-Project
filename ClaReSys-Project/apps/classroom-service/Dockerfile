@@ -4,9 +4,11 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY apps/classroom-service/requirements.txt .
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY packages/common /packages/common
+
 RUN pip install -e /packages/common
 
 COPY apps/classroom-service/ .
