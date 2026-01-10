@@ -1,8 +1,19 @@
 from uuid import UUID
 from datetime import datetime
 from sqlalchemy.orm import Session
+
 from src.domain.models import Booking
 from src.domain.ports import ClassroomGateway, TimetableGateway, EventBusGateway
+
+class ClassroomNotFoundError(Exception):
+    pass
+
+class ClassroomUnavailableError(Exception):
+    pass
+
+class ScheduleConflictError(Exception):
+    pass
+
 
 class BookingService:
     def __init__(self, db: Session, classroom_gateway: ClassroomGateway, timetable_gateway: TimetableGateway, event_bus: EventBusGateway):
@@ -12,25 +23,24 @@ class BookingService:
         self.event_bus = event_bus
 
     def create_booking(self, user_id: UUID, classroom_id: UUID, start_time: datetime, end_time: datetime):
-        # 1. Validate classroom existence (Llamada HTTP)
-        if not self.classroom_gw.exists(classroom_id):
-            raise ValueError("El aula especificada no existe.")
 
-        # 2. Get existing bookings for the classroom
-        existing_db_bookings = self.db.query(Booking).filter(
-            Booking.classroom_id == classroom_id,
-            Booking.status == "CONFIRMED"
-        ).all()
+        classroom = self.classroom_gw.get_classroom(classroom_id)
+
+        if classroom is None:
+            raise ClassroomNotFoundError("Aula no encontrada")
+
+        if classroom.get("is_operational") is False:
+            raise ClassroomUnavailableError("Aula no disponible para reservas")
         
-        existing_intervals = [(b.start_time, b.end_time) for b in existing_db_bookings]
+        existing = (self.db.query(Booking).filter(Booking.classroom_id == classroom_id,Booking.status == "CONFIRMED").all())
 
-        # 3. Validate timetable availability (Llamada gRPC)
+        existing_intervals = [(b.start_time.isoformat(), b.end_time.isoformat()) for b in existing]
+
         is_available = self.timetable_gw.check_availability(start_time, end_time, existing_intervals)
-        
-        if not is_available:
-            raise ValueError("Conflicto de horario: El aula ya está reservada en ese lapso.")
 
-        # 4. Save the booking
+        if not is_available:
+            raise ScheduleConflictError("Conflicto de horario con reservas existentes")
+
         new_booking = Booking(
             user_id=user_id,
             classroom_id=classroom_id,
@@ -38,18 +48,16 @@ class BookingService:
             end_time=end_time,
             status="CONFIRMED"
         )
-        
+
         self.db.add(new_booking)
         self.db.commit()
         self.db.refresh(new_booking)
-        
-        # 5. Publish event to event bus
-        event_payload = {
+
+        self.event_bus.publish("booking.created", {
             "booking_id": str(new_booking.id),
             "user_id": str(new_booking.user_id),
-            "email": "student@uce.edu.ec",
-            "status": "CONFIRMED"
-        }
-        self.event_bus.publish("booking.created", event_payload)
+            "classroom_id": str(new_booking.classroom_id),
+            "status": new_booking.status
+        })
 
         return new_booking

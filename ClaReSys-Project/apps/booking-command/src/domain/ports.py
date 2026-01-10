@@ -1,16 +1,14 @@
 from abc import ABC, abstractmethod
 from uuid import UUID
 from datetime import datetime
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Dict, Any
 
 class ClassroomGateway(ABC):
-    """Port to verify classroom existence"""
     @abstractmethod
-    def exists(self, classroom_id: UUID) -> bool:
+    def get_classroom(self, classroom_id: UUID) -> Optional[Dict[str, Any]]:
         pass
 
 class TimetableGateway(ABC):
-    """Port to verify timetable conflicts"""
     @abstractmethod
     def check_availability(self, start: datetime, end: datetime, existing_bookings: List[Tuple[datetime, datetime]]) -> bool:
         pass

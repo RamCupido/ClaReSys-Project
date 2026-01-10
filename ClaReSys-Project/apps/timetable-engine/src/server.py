@@ -40,9 +40,9 @@ class TimetableService(timetable_pb2_grpc.TimetableCheckerServicer):
         
         msg = "Conflicto detectado" if has_conflict else "Horario disponible"
         if has_conflict:
-            print(f"[Timetable Engine] ❌ {msg}")
+            print(f"[Timetable Engine] {msg}")
         else:
-            print(f"[Timetable Engine] ✅ {msg}")
+            print(f"[Timetable Engine] {msg}")
 
         return timetable_pb2.CheckResponse(has_conflict=has_conflict, conflict_details=msg)
 

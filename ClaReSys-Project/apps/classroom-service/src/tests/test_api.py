@@ -53,7 +53,7 @@ def test_create_classroom():
         "capacity": 20,
         "is_operational": True
     })
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
     assert data["code"] == "TEST-101"
     assert "id" in data
@@ -63,4 +63,4 @@ def test_create_duplicate_classroom_fails():
     client.post("/api/v1/classrooms/", json={"code": "A1", "capacity": 10})
     # Create second time (should fail)
     response = client.post("/api/v1/classrooms/", json={"code": "A1", "capacity": 10})
-    assert response.status_code == 400
+    assert response.status_code == 409

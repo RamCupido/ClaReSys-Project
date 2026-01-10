@@ -1,18 +1,21 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field
 from uuid import UUID
 from typing import Optional
 
-class UserBase(BaseModel):
-    email:str
-    password:str
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=128)
     role: Optional[str] = "STUDENT"
-    is_active: bool =True
 
-class UserCreate(UserBase):
-    pass
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
     id: UUID
-    
+    email: EmailStr
+    role: str
+    is_active: bool
+
     class Config:
         from_attributes = True

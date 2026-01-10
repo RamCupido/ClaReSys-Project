@@ -10,7 +10,7 @@ service TimetableChecker {
 
 // Mensaje para definir un rango de tiempo
 message TimeRange {
-  string start = 1; // Formato ISO 8601 string
+  string start = 1;
   string end = 2;
 }
 

@@ -20,5 +20,4 @@ class UserGateway:
                 
             return response
         except grpc.RpcError as e:
-            print(f"Error conectando con User Service: {e}")
-            return None
+            raise RuntimeError(f"Servicio de usuario no disponible: {e.details()}") from e
