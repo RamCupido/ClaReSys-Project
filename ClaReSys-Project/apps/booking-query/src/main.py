@@ -10,7 +10,6 @@ app.include_router(router, prefix="/api/v1/queries", tags=["queries"])
 @app.on_event("startup")
 async def startup_event():
     # Wait a moment to ensure RabbitMQ is up (in real scenarios, implement retries)
-    time.sleep(5) 
     consumer = EventConsumer()
     consumer.start()
     print("Query Service iniciado y consumidor activo")

@@ -1,3 +1,4 @@
+import time
 import pika
 import json
 import threading
@@ -13,25 +14,33 @@ class EventConsumer(threading.Thread):
         self.daemon = True
 
     def run(self):
-        """Este método corre en un hilo separado para no bloquear FastAPI"""
-        try:
-            connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.host, port=self.port))
-            channel = connection.channel()
+        """This method runs in a separate thread so as not to block FastAPI"""
+        attempt = 0
+        while True:
+            try:
+                params = pika.ConnectionParameters(host=self.host, port=self.port)
+                connection = pika.BlockingConnection(params)
+                channel = connection.channel()
+                
+                channel.exchange_declare(exchange='booking_events', exchange_type='topic')
+                
+                # Queue for booking query updates
+                result = channel.queue_declare(queue='booking_query_updater', exclusive=False)
+                queue_name = result.method.queue
+                
+                # Subscribe to booking.created events
+                channel.queue_bind(exchange='booking_events', queue=queue_name, routing_key='booking.created')
+                
+                print("Query Service escuchando eventos 'booking.created'...")
+                channel.basic_consume(queue=queue_name, on_message_callback=self.process_event, auto_ack=True)
+                channel.start_consuming()
+                return
             
-            channel.exchange_declare(exchange='booking_events', exchange_type='topic')
-            
-            # Queue for booking query updates
-            result = channel.queue_declare(queue='booking_query_updater', exclusive=False)
-            queue_name = result.method.queue
-            
-            # Subscribe to booking.created events
-            channel.queue_bind(exchange='booking_events', queue=queue_name, routing_key='booking.created')
-            
-            print("🎧 Query Service escuchando eventos 'booking.created'...")
-            channel.basic_consume(queue=queue_name, on_message_callback=self.process_event, auto_ack=True)
-            channel.start_consuming()
-        except Exception as e:
-            print(f"Error en consumidor RabbitMQ: {e}")
+            except Exception as e:
+                attempt += 1
+                wait = min(2 ** attempt, 30)
+                print(f"[booking-query] Error en consumidor RabbitMQ: ({e}). Reintentando en {wait}s...")
+                time.sleep(wait)
 
     def process_event(self, ch, method, properties, body):
         try:
