@@ -10,6 +10,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    password: Optional[str] = Field(None, min_length=6, max_length=128)
 
 class UserResponse(BaseModel):
     id: UUID
