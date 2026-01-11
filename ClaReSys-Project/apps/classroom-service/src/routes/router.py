@@ -11,7 +11,6 @@ router = APIRouter()
 
 @router.post("/", response_model=ClassroomResponse, status_code=status.HTTP_201_CREATED)
 def create_classroom(payload: ClassroomCreate, db: Session = Depends(get_db)):
-    # Normalización opcional (recomendada)
     code = payload.code.strip().upper()
 
     new_classroom = Classroom(
@@ -26,10 +25,7 @@ def create_classroom(payload: ClassroomCreate, db: Session = Depends(get_db)):
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Classroom code already registered"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Classroom code already registered")
 
     db.refresh(new_classroom)
     return new_classroom
@@ -70,10 +66,17 @@ def update_classroom(classroom_id: UUID, payload: ClassroomUpdate, db: Session =
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Classroom code already registered"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,detail="Classroom code already registered")
 
     db.refresh(classroom)
     return classroom
+
+@router.delete("/{classroom_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_classroom(classroom_id: UUID, db: Session = Depends(get_db)):
+    classroom = db.query(Classroom).filter(Classroom.id == classroom_id).first()
+    if not classroom:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classroom not found")
+
+    db.delete(classroom)
+    db.commit()
+    return None
