@@ -19,11 +19,7 @@ class BookingView(BaseModel):
 def redis_dep() -> Redis:
     return get_redis_client()
 
-@router.get(
-    "/{booking_id}",
-    response_model=BookingView,
-    status_code=status.HTTP_200_OK
-)
+@router.get("/{booking_id}",response_model=BookingView,status_code=status.HTTP_200_OK)
 def get_booking(booking_id: UUID, redis_client: Redis = Depends(redis_dep)):
     data = redis_client.get(f"booking:{booking_id}")
 
