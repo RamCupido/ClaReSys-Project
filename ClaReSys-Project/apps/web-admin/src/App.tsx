@@ -9,6 +9,7 @@ import ClassroomsPage from "./pages/ClassroomsPage";
 import CreateBookingPage from "./pages/CreateBookingPage";
 import NotFound from "./pages/NotFound";
 import BookingsPage from "./pages/BookingsPage";
+import UsersPage from "./pages/UsersPage";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="classrooms" element={<ClassroomsPage />} />
             <Route path="bookings" element={<BookingsPage />} />
             <Route path="bookings/create" element={<CreateBookingPage />} />
+            <Route path="users" element={<UsersPage />} />
           </Route>
 
           <Route path="/" element={<Navigate to="/admin" replace />} />

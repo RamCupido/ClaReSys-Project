@@ -15,7 +15,9 @@ export default function AdminLayout() {
 
         <nav style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <Link to="/admin/classrooms">Aulas</Link>
-          <Link to="/admin/bookings">Reservas</Link>
+          <Link to="/admin/bookings/create">Crear reserva</Link>
+          <Link to="/admin/bookings">Listar reservas</Link>
+          <Link to="/admin/users">Usuarios</Link>
         </nav>
 
         <button onClick={logout} style={{ marginTop: 16 }}>
