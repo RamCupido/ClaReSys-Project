@@ -274,6 +274,18 @@ services:
       classroom-service:
         condition: service_healthy
 
+  # Web Admin Frontend Service
+  web-admin:
+    build:
+      context: ./apps/web-admin
+      dockerfile: Dockerfile
+    container_name: web_admin_container
+    ports:
+      - "5173:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
+
 volumes:
   classroom_data:
   booking_data:
