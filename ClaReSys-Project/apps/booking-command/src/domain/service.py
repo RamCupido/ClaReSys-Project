@@ -14,6 +14,11 @@ class ClassroomUnavailableError(Exception):
 class ScheduleConflictError(Exception):
     pass
 
+class BookingNotFoundError(Exception):
+    pass
+
+class BookingForbiddenError(Exception):
+    pass
 
 class BookingService:
     def __init__(self, db: Session, classroom_gateway: ClassroomGateway, timetable_gateway: TimetableGateway, event_bus: EventBusGateway):
@@ -61,3 +66,39 @@ class BookingService:
         })
 
         return new_booking
+    
+    def cancel_booking(self, booking_id: UUID, requester_user_id: UUID, *, allow_admin: bool = False):
+        """Cancela una reserva (soft-delete) cambiando su estado.
+
+        Nota: por simplicidad, allow_admin queda como flag para futuros roles.
+        """
+
+        booking: Booking | None = self.db.query(Booking).filter(Booking.id == booking_id).first()
+        if booking is None:
+            raise BookingNotFoundError("Reserva no encontrada")
+
+        if not allow_admin and booking.user_id != requester_user_id:
+            raise BookingForbiddenError("No tienes permisos para cancelar esta reserva")
+
+        if booking.status == "CANCELLED":
+            return booking
+
+        booking.status = "CANCELLED"
+        self.db.add(booking)
+        self.db.commit()
+        self.db.refresh(booking)
+
+        self.event_bus.publish(
+            "booking.canceled",
+            {
+                "booking_id": str(booking.id),
+                "user_id": str(booking.user_id),
+                "classroom_id": str(booking.classroom_id),
+                "status": booking.status,
+                "start_time": booking.start_time.isoformat(),
+                "end_time": booking.end_time.isoformat(),
+            },
+        )
+
+        return booking
+

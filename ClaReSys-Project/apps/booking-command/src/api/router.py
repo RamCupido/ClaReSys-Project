@@ -8,7 +8,7 @@ from src.infrastructure.database import get_db
 from src.infrastructure.gateways.classroom_gateway import HttpClassroomGateway
 from src.infrastructure.gateways.timetable_gateway import GrpcTimetableGateway
 from src.infrastructure.gateways.rabbitmq_gateway import RabbitMQGateway
-from src.domain.service import BookingService, ClassroomNotFoundError, ClassroomUnavailableError, ScheduleConflictError
+from src.domain.service import BookingService, ClassroomNotFoundError, ClassroomUnavailableError, ScheduleConflictError, BookingNotFoundError, BookingForbiddenError
 from src.infrastructure.gateways.timetable_gateway import TimetableUnavailableError
 from common.security import get_current_user, TokenData
 
@@ -30,11 +30,7 @@ class BookingResponse(BaseModel):
     status: str
     message: str
 
-@router.post(
-    "/",
-    response_model=BookingResponse,
-    status_code=status.HTTP_201_CREATED
-)
+@router.post("/",response_model=BookingResponse,status_code=status.HTTP_201_CREATED)
 def create_booking(
     request: BookingCreateRequest,
     db: Session = Depends(get_db),
@@ -70,7 +66,6 @@ def create_booking(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
     except ValueError as e:
-        # Validación de negocio/inputs (si llega algo raro)
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
     
     except TimetableUnavailableError as e:
@@ -79,3 +74,45 @@ def create_booking(
     except Exception as e:
         print(f"[booking-command] Internal error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.delete("/{booking_id}", response_model=BookingResponse, status_code=status.HTTP_200_OK)
+def cancel_booking(
+    booking_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: TokenData = Depends(get_current_user),
+):
+    """Cancela (soft-delete) una reserva.
+
+    - Mantiene el registro en la BD.
+    - Publica evento booking.canceled para que el query service actualice Redis.
+    """
+
+    service = BookingService(
+        db=db,
+        classroom_gateway=HttpClassroomGateway(),
+        timetable_gateway=GrpcTimetableGateway(),
+        event_bus=RabbitMQGateway(),
+    )
+
+    try:
+        booking = service.cancel_booking(
+            booking_id=booking_id,
+            requester_user_id=UUID(current_user.user_id),
+        )
+
+        return BookingResponse(
+            id=booking.id,
+            status=booking.status,
+            message="Booking canceled successfully",
+        )
+
+    except BookingNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    except BookingForbiddenError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+    except Exception as e:
+        print(f"[booking-command] Internal error (cancel): {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+

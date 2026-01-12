@@ -30,7 +30,8 @@ class EventConsumer(threading.Thread):
                 
                 # Subscribe to booking.created events
                 channel.queue_bind(exchange='booking_events', queue=queue_name, routing_key='booking.created')
-                
+                channel.queue_bind(exchange='booking_events', queue=queue_name, routing_key='booking.canceled')
+
                 print("Query Service escuchando eventos 'booking.created'...")
                 channel.basic_consume(queue=queue_name, on_message_callback=self.process_event, auto_ack=True)
                 channel.start_consuming()
@@ -46,13 +47,27 @@ class EventConsumer(threading.Thread):
         try:
             event_data = json.loads(body)
             print(f"Evento recibido: {event_data}")
+
+            booking_id = event_data.get('booking_id')
+            if not booking_id:
+                print("Evento inválido: falta booking_id")
+                return
             
             # Logic to update Redis cache
-            booking_key = f"booking:{event_data['booking_id']}"
+            booking_key = f"booking:{booking_id}"
             self.redis.set(booking_key, json.dumps(event_data))
             
             # Also update classroom bookings list
             # Clave="classroom:{id}:bookings", Valor=Lista de IDs
+            user_id = event_data.get('user_id')
+            classroom_id = event_data.get('classroom_id')
+
+            self.redis.sadd("bookings:all", booking_id)
+
+            if user_id:
+                self.redis.sadd(f"user:{user_id}:bookings", booking_id)
+            if classroom_id:
+                self.redis.sadd(f"classroom:{classroom_id}:bookings", booking_id)
             
             print(f"Guardado en Redis: {booking_key}")
             
