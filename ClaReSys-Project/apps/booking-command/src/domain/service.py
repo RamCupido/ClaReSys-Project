@@ -62,7 +62,9 @@ class BookingService:
             "booking_id": str(new_booking.id),
             "user_id": str(new_booking.user_id),
             "classroom_id": str(new_booking.classroom_id),
-            "status": new_booking.status
+            "status": new_booking.status,
+            "start_time": new_booking.start_time.isoformat(),
+            "end_time": new_booking.end_time.isoformat(),
         })
 
         return new_booking
