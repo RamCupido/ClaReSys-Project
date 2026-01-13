@@ -1,0 +1,11 @@
+{
+  "name": "@claresys/classroom-service",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up classroom-service",
+    "build": "docker compose build classroom-service",
+    "test": "docker compose run --rm classroom-service pytest -q",
+    "lint": "docker compose run --rm classroom-service ruff check .",
+    "typecheck": "docker compose run --rm classroom-service mypy ."
+  }
+}

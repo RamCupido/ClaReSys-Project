@@ -1,0 +1,11 @@
+{
+  "name": "@claresys/booking-command",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up booking-command",
+    "build": "docker compose build booking-command",
+    "test": "docker compose run --rm booking-command pytest -q",
+    "lint": "docker compose run --rm booking-command ruff check .",
+    "typecheck": "docker compose run --rm booking-command mypy ."
+  }
+}

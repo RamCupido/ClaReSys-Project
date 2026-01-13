@@ -1,0 +1,11 @@
+{
+  "name": "@claresys/auth-service",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up auth-service",
+    "build": "docker compose build auth-service",
+    "test": "docker compose run --rm auth-service pytest -q",
+    "lint": "docker compose run --rm auth-service ruff check .",
+    "typecheck": "docker compose run --rm auth-service mypy ."
+  }
+}
