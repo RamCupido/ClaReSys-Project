@@ -9,6 +9,18 @@ from email_sender import EmailSender
 RABBIT_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
 RABBIT_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 
+def handle_message(body: bytes, email_sender: EmailSender) -> bool:
+    payload = json.loads(body.decode("utf-8"))
+
+    email = payload.get("email")
+    booking_id = payload.get("booking_id")
+    status = payload.get("status")
+
+    if not email or not booking_id or not status:
+        return False
+
+    return email_sender.send_booking_confirmation(email, booking_id, status)
+
 def main():
     email_sender = EmailSender()
     
@@ -35,6 +47,7 @@ def main():
     print("Notification Service esperando eventos...")
 
     def callback(ch, method, properties, body):
+        handle_message(body, email_sender)
         event_data = json.loads(body)
         print(f"Evento recibido: {event_data}")
         
