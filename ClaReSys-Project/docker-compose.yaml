@@ -329,7 +329,7 @@ services:
     environment:
       SERVICE_NAME: "audit-log-service"
       MONGO_URI: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}"
-      MONGO_DB: ${MONGO_DB_NAME}
+      MONGO_DB: ${MONGO_DB}
       MONGO_COLLECTION: "audit_logs"
       KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_HOST}:${KAFKA_PORT}"
       KAFKA_TOPIC_AUDIT: "audit.logs"
@@ -346,6 +346,30 @@ services:
       timeout: 5s
       retries: 10
 
+  # Maintenance Service      
+  maintenance-service:
+    build:
+      context: .
+      dockerfile: apps/maintenance-service/Dockerfile
+    container_name: maintenance_service_container
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017
+      MONGO_DB: ${MONGO_DB}
+      MONGO_COLLECTION: maintenance_tickets
+
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_EXCHANGE: domain.events
+    depends_on:
+      - mongodb
+      - rabbitmq
+    ports:
+      - "8011:8000"
+      
   # --- API Gateway Service ---
   api-gateway:
     build:

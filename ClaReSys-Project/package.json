@@ -7,7 +7,7 @@
   ],
   "scripts": {
     "dev:infra": "docker compose up -d classroom-db booking-db users-db rabbitmq redis mailhog mongodb kafka",
-    "dev:backend": "docker compose up classroom-service timetable-engine booking-command booking-query notification-service user-service auth-service api-gateway audit-log-service",
+    "dev:backend": "docker compose up classroom-service timetable-engine booking-command booking-query notification-service user-service auth-service api-gateway audit-log-service maintenance-service",
     "dev:web": "npm --workspace apps/web-admin run dev",
     "dev": "npm run dev:infra && concurrently -n BACKEND,WEB \"npm run dev:backend\" \"npm run dev:web\"",
 
