@@ -255,6 +255,96 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      
+  # --- MongoDB Service for Audit Log Service ---
+  mongodb:
+    image: mongo:7
+    container_name: mongodb_container
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka Service
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka_container
+    restart: always
+    ports:
+      - "9092:9092"
+    environment:
+      # --- REQUIRED for KRaft ---
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"  # string base64-like, fixed for dev
+
+      # --- KRaft mode ---
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: "1"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+
+      # --- Listeners ---
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+
+      # --- Single-node dev settings ---
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+
+  # Audit Log Service
+  audit-log-service:
+    build:
+      context: .
+      dockerfile: apps/audit-log-service/Dockerfile
+    container_name: audit_log_service_container
+    env_file:
+      - .env
+    ports:
+      - "8010:8000"
+    environment:
+      SERVICE_NAME: "audit-log-service"
+      MONGO_URI: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}"
+      MONGO_DB: ${MONGO_DB_NAME}
+      MONGO_COLLECTION: "audit_logs"
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_HOST}:${KAFKA_PORT}"
+      KAFKA_TOPIC_AUDIT: "audit.logs"
+      KAFKA_CONSUMER_GROUP: "audit-log-service"
+      KAFKA_ENABLE_CONSUMER: "true"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   # --- API Gateway Service ---
   api-gateway:
@@ -290,3 +380,5 @@ volumes:
   classroom_data:
   booking_data:
   users_data:
+  mongo_data:
+  kafka_data:
