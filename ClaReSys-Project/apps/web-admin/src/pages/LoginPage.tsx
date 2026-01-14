@@ -23,13 +23,17 @@ export default function LoginPage() {
       await login({ email, password });
 
       const role = storage.getRole();
-      if (role !== Roles.ADMIN) {
-        storage.clearAll();
-        setErr("Acceso denegado: este portal es solo para ADMIN.");
+      if (role === Roles.ADMIN) {
+        nav("/admin", { replace: true });
+        return;
+      }
+      if (role === Roles.DOCENTE) {
+        nav("/teacher", { replace: true });
         return;
       }
 
-      nav("/admin", { replace: true });
+      storage.clearAll();
+      setErr("Acceso denegado: rol no permitido en esta aplicación web.");
     } catch (error: any) {
       setErr(error?.response?.data?.detail ?? "Login falló.");
     } finally {
