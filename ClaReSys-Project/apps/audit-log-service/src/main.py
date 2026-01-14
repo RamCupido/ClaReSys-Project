@@ -1,11 +1,11 @@
 import threading
 from fastapi import FastAPI
 
-from src.config.config import SERVICE_NAME, KAFKA_ENABLE_CONSUMER
+from src.config.config import KAFKA_ENABLE_CONSUMER
 from src.routes.router import router
 from .kafka_consumer import start_consumer
 
-app = FastAPI(title=SERVICE_NAME)
+app = FastAPI(title="Audit Log Service")
 
 app.include_router(router)
 
@@ -14,7 +14,7 @@ _thread: threading.Thread | None = None
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": SERVICE_NAME}
+    return {"status": "ok", "service": "Audit Log Service"}
 
 @app.on_event("startup")
 def on_startup():

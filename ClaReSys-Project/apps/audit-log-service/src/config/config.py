@@ -7,7 +7,6 @@ def env(key: str, default: str | None = None) -> str:
     return v
 
 ENV = env("ENV", "development")
-SERVICE_NAME = env("SERVICE_NAME", "audit-log-service")
 
 MONGO_URI = env("MONGO_URI", "mongodb://mongodb:27017")
 MONGO_DB = env("MONGO_DB", "claresys")
