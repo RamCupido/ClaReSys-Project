@@ -18,6 +18,7 @@ export default function AdminLayout() {
           <Link to="/admin/bookings/create">Crear reserva</Link>
           <Link to="/admin/bookings">Listar reservas</Link>
           <Link to="/admin/users">Usuarios</Link>
+          <Link to="/admin/reports">Reportes</Link>
         </nav>
 
         <button onClick={logout} style={{ marginTop: 16 }}>

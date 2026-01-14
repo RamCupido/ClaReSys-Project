@@ -416,6 +416,12 @@ services:
         condition: service_healthy
       classroom-service:
         condition: service_healthy
+      user-service:
+        condition: service_healthy
+      audit-log-service:
+        condition: service_healthy
+      reporting-service:
+        condition: service_healthy
 
   # Web Admin Frontend Service
   web-admin:
