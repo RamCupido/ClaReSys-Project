@@ -88,9 +88,12 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq_container
+    restart: always
     ports:
       - "5672:5672"   # Port for RabbitMQ messaging
       - "15672:15672" # Port for RabbitMQ management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -136,8 +139,12 @@ services:
   redis:
     image: redis:7-alpine
     container_name: redis_container
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -438,6 +445,8 @@ services:
 volumes:
   classroom_data:
   booking_data:
+  rabbitmq_data:
+  redis_data:
   users_data:
   mongo_data:
   kafka_data:
