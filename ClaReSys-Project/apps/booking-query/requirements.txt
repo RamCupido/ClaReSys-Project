@@ -4,3 +4,4 @@ redis
 pika
 pydantic
 pydantic-settings
+httpx

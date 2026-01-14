@@ -1,3 +1,6 @@
+from typing import Optional
+import os
+from fastapi import Header
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field, model_validator
@@ -13,6 +16,8 @@ from src.infrastructure.gateways.timetable_gateway import TimetableUnavailableEr
 from common.security import get_current_user, TokenData
 
 router = APIRouter()
+
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
 
 class BookingCreateRequest(BaseModel):
     classroom_id: UUID
@@ -116,3 +121,49 @@ def cancel_booking(
         print(f"[booking-command] Internal error (cancel): {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+def _require_internal_key(x_internal_api_key: Optional[str]):
+    if not INTERNAL_API_KEY:
+        return
+    if x_internal_api_key != INTERNAL_API_KEY:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal key")
+
+
+@router.get("/internal/bookings")
+def internal_list_bookings(
+    limit: int = 1000,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    x_internal_api_key: Optional[str] = Header(default=None),
+):
+    """
+    Exporta bookings desde el write-store (Postgres) para rehidratar el read-model.
+    """
+    _require_internal_key(x_internal_api_key)
+
+    # Ajusta la referencia al modelo Booking según tu proyecto
+    from src.domain.models import Booking
+
+    rows = (
+        db.query(Booking)
+        .order_by(Booking.created_at.desc() if hasattr(Booking, "created_at") else Booking.start_time.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    items = []
+    for b in rows:
+        items.append(
+            {
+                "booking_id": str(b.id),
+                "user_id": str(b.user_id),
+                "classroom_id": str(b.classroom_id),
+                "status": b.status,
+                "start_time": b.start_time.isoformat() if b.start_time else None,
+                "end_time": b.end_time.isoformat() if b.end_time else None,
+                # opcional
+                "created_at": b.created_at.isoformat() if getattr(b, "created_at", None) else None,
+            }
+        )
+
+    return {"total": len(items), "items": items}

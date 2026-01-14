@@ -162,9 +162,17 @@ services:
     ports:
       - "8002:8000"
     environment:
-      REDIS_HOST: ${REDIS_HOST}
-      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      - BOOKING_COMMAND_URL=http://booking-command:8000
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     depends_on:
+      booking-command:
+        condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
