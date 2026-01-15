@@ -105,6 +105,7 @@ def cancel_booking(
         booking = service.cancel_booking(
             booking_id=booking_id,
             requester_user_id=UUID(current_user.user_id),
+            requester_role=current_user.role,
         )
 
         return BookingResponse(

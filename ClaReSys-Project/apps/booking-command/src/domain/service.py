@@ -71,7 +71,7 @@ class BookingService:
 
         return new_booking
     
-    def cancel_booking(self, booking_id: UUID, requester_user_id: UUID, *, allow_admin: bool = False):
+    def cancel_booking(self, booking_id: UUID, requester_user_id: UUID, *, requester_role: str):
         """Cancela una reserva (soft-delete) cambiando su estado.
 
         Nota: por simplicidad, allow_admin queda como flag para futuros roles.
@@ -81,7 +81,8 @@ class BookingService:
         if booking is None:
             raise BookingNotFoundError("Reserva no encontrada")
 
-        if not allow_admin and booking.user_id != requester_user_id:
+        is_admin = (requester_role == "ADMIN")
+        if not is_admin and booking.user_id != requester_user_id:
             raise BookingForbiddenError("No tienes permisos para cancelar esta reserva")
 
         if booking.status == "CANCELLED":
