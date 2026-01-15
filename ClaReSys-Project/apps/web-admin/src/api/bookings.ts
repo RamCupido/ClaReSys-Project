@@ -17,3 +17,13 @@ export async function createBooking(payload: CreateBookingRequest): Promise<Crea
   const { data } = await http.post<CreateBookingResponse>("/api/v1/bookings/", payload);
   return data;
 }
+
+export async function cancelBooking(bookingId: string) {
+  const res = await http.delete(`/api/v1/bookings/${bookingId}`);
+  return res.data as {
+    id: string;
+    status: string;
+    message: string;
+  };
+}
+

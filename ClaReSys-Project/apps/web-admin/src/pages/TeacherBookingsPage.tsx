@@ -4,6 +4,8 @@ import { listBookings } from "../api/bookingsQuery";
 import type { BookingView } from "../api/bookingsQuery";
 import { listClassrooms } from "../api/classrooms";
 import type { Classroom } from "../api/classrooms";
+import { cancelBooking } from "../api/bookings";
+import Button from "../ui/Button";
 
 function asShortId(id?: string | null) {
   if (!id) return "-";
@@ -76,6 +78,27 @@ export default function TeacherBookingsPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, statusFilter, classroomId, limit, offset, userId]);
+
+  const onCancel = async (bookingId: string) => {
+    const ok = window.confirm("¿Estás seguro de cancelar esta reserva?");
+    if (!ok) return;
+
+    setErr(null);
+    try {
+      await cancelBooking(bookingId);
+      await load(); // vuelve a cargar la lista
+    } catch (e: any) {
+      const status = e?.response?.status;
+      if (status === 403) {
+        setErr("No tienes permisos para cancelar esta reserva.");
+      } else if (status === 404) {
+        setErr("La reserva no existe o ya fue cancelada.");
+      } else {
+        setErr(e?.response?.data?.detail ?? "Error cancelando la reserva.");
+      }
+    }
+  };
+
 
   return (
     <div>
@@ -185,10 +208,12 @@ export default function TeacherBookingsPage() {
               <th align="left">status</th>
               <th align="left">start_time</th>
               <th align="left">end_time</th>
+              <th align="left">acciones</th>
             </tr>
           </thead>
           <tbody>
             {items.map((b) => (
+
               <tr key={b.booking_id} style={{ borderTop: "1px solid #eee" }}>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.booking_id}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{asShortId(b.classroom_id)}</td>
@@ -204,6 +229,38 @@ export default function TeacherBookingsPage() {
                 </td>
               </tr>
             )}
+            {items.map((b) => {
+              const canCancel = b.status === "CONFIRMED";
+
+              return (
+                <tr key={b.booking_id} className="border-t">
+                  <td className="font-mono text-xs">{b.booking_id}</td>
+                  <td className="font-mono text-xs">{b.classroom_id}</td>
+                  <td>
+                    <span
+                      className={
+                        b.status === "CONFIRMED"
+                          ? "rounded bg-emerald-100 px-2 py-1 text-xs text-emerald-800"
+                          : "rounded bg-slate-200 px-2 py-1 text-xs text-slate-700"
+                      }
+                    >
+                      {b.status}
+                    </span>
+                  </td>
+                  <td className="font-mono text-xs">{b.start_time}</td>
+                  <td className="font-mono text-xs">{b.end_time}</td>
+                  <td>
+                    <Button
+                      variant="danger"
+                      disabled={!canCancel}
+                      onClick={() => onCancel(b.booking_id)}
+                    >
+                      Cancelar
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

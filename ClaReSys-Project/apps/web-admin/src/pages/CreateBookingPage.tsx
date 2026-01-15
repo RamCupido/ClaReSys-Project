@@ -206,7 +206,7 @@ export default function CreateBookingPage() {
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
                 <div className="text-slate-700">
-                  Se enviará al backend (sin Z):
+                  Formato 00:00 (24 horas, sin AM/PM):
                 </div>
                 <div className="mt-1 font-mono text-xs text-slate-700">
                   {startIso} → {endIso}
