@@ -6,20 +6,22 @@ import { listClassrooms } from "../api/classrooms";
 import type { Classroom } from "../api/classrooms";
 import { cancelBooking } from "../api/bookings";
 import Button from "../ui/Button";
+import Alert from "../ui/Alert";
 import { storage } from "../auth/storage";
+
+type Tab = "mine" | "all";
 
 function asShortId(id?: string | null) {
   if (!id) return "-";
   return id.length > 10 ? `${id.slice(0, 8)}…` : id;
 }
 
-type Tab = "mine" | "all";
-
 export default function TeacherBookingsPage() {
   const { userId } = useAuth();
   const myEmail = storage.getEmail() ?? "(yo)";
 
   const [tab, setTab] = useState<Tab>("mine");
+
   const [items, setItems] = useState<BookingView[]>([]);
   const [total, setTotal] = useState(0);
 
@@ -46,7 +48,7 @@ export default function TeacherBookingsPage() {
   const loadRooms = async () => {
     setLoadingRooms(true);
     try {
-      const data = await listClassrooms({ skip: 0, limit: 200 });
+      const data = await listClassrooms({ skip: 0, limit: 500 });
       setClassrooms(data);
     } finally {
       setLoadingRooms(false);
@@ -78,6 +80,7 @@ export default function TeacherBookingsPage() {
   }, []);
 
   useEffect(() => {
+    // al cambiar tab, reinicia paginación
     setOffset(0);
   }, [tab]);
 
@@ -87,7 +90,7 @@ export default function TeacherBookingsPage() {
   }, [tab, statusFilter, classroomId, limit, offset, userId]);
 
   const onCancel = async (bookingId: string) => {
-    const ok = window.confirm("¿Estás seguro de cancelar esta reserva?");
+    const ok = window.confirm("¿Cancelar esta reserva? Esta acción cambia el estado a CANCELLED.");
     if (!ok) return;
 
     setErr(null);
@@ -96,46 +99,50 @@ export default function TeacherBookingsPage() {
       await load();
     } catch (e: any) {
       const status = e?.response?.status;
-      if (status === 403) {
-        setErr("No tienes permisos para cancelar esta reserva.");
-      } else if (status === 404) {
-        setErr("La reserva no existe o ya fue cancelada.");
-      } else {
-        setErr(e?.response?.data?.detail ?? "Error cancelando la reserva.");
-      }
+      if (status === 403) setErr("No tienes permisos para cancelar esta reserva (solo puedes cancelar tus reservas).");
+      else if (status === 404) setErr("La reserva no existe o ya fue cancelada.");
+      else setErr(e?.response?.data?.detail ?? "Error cancelando la reserva.");
     }
   };
 
   const renderUser = (b: BookingView) => {
-    // Si query-engine algún día devuelve user_email, lo aprovechamos sin tocar código
     const anyB = b as any;
     const userEmail = anyB.user_email as string | undefined;
 
     if (tab === "mine") return myEmail;
+    // Si el query-engine no manda email, mostramos un id corto
     return userEmail ?? asShortId(b.user_id);
   };
 
   return (
-    <div>
-      <h2>Reservas</h2>
-
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <button onClick={() => setTab("mine")} disabled={tab === "mine"}>
-          Mis reservas
-        </button>
-        <button onClick={() => setTab("all")} disabled={tab === "all"}>
-          Todas
-        </button>
+    <div className="space-y-4">
+      <div>
+        <div className="text-xl font-semibold text-slate-900">Reservas</div>
+        <div className="text-sm text-slate-500">
+          Docente: puedes cancelar únicamente tus reservas (tab “Mis reservas”).
+        </div>
       </div>
 
-      <div style={{ border: "1px solid #ddd", padding: 12, marginBottom: 16 }}>
-        <h4>Filtros</h4>
+      {err && <Alert type="error">{err}</Alert>}
 
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "end" }}>
+      <div className="flex flex-wrap gap-2">
+        <Button variant={tab === "mine" ? "primary" : "ghost"} onClick={() => setTab("mine")}>
+          Mis reservas
+        </Button>
+        <Button variant={tab === "all" ? "primary" : "ghost"} onClick={() => setTab("all")}>
+          Todas
+        </Button>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="mb-3 font-semibold text-slate-900">Filtros</div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <div>
-            <label style={{ display: "block", marginBottom: 6 }}>Estado</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Estado</label>
             <input
-              placeholder="CONFIRMED / CANCELLED / ..."
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="CONFIRMED / CANCELLED"
               value={statusFilter}
               onChange={(e) => {
                 setOffset(0);
@@ -145,8 +152,9 @@ export default function TeacherBookingsPage() {
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: 6 }}>Aula</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Aula</label>
             <select
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
               value={classroomId}
               onChange={(e) => {
                 setOffset(0);
@@ -164,8 +172,9 @@ export default function TeacherBookingsPage() {
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: 6 }}>Limit</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Limit</label>
             <input
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
               type="number"
               min={1}
               max={200}
@@ -174,85 +183,107 @@ export default function TeacherBookingsPage() {
                 setOffset(0);
                 setLimit(Number(e.target.value));
               }}
-              style={{ width: 100 }}
             />
           </div>
 
-          <button
-            onClick={() => {
-              setStatusFilter("");
-              setClassroomId("");
-              setLimit(50);
-              setOffset(0);
-            }}
-          >
-            Limpiar
-          </button>
+          <div className="flex items-end gap-2">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={() => {
+                setStatusFilter("");
+                setClassroomId("");
+                setLimit(50);
+                setOffset(0);
+              }}
+            >
+              Limpiar
+            </Button>
+          </div>
         </div>
 
-        <div style={{ marginTop: 10, fontSize: 12, color: "#666" }}>
-          Tab: {tab === "mine" ? "Mis reservas" : "Todas"} | Total: {total} | Offset: {offset}
+        <div className="mt-3 text-xs text-slate-500">
+          Total: {total} | Offset: {offset}
         </div>
-
-        {err && <div style={{ color: "crimson", marginTop: 10 }}>{err}</div>}
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
-        <button disabled={!canPrev || loading} onClick={() => setOffset((o) => Math.max(0, o - limit))}>
+      <div className="flex gap-2">
+        <Button variant="secondary" disabled={!canPrev || loading} onClick={() => setOffset((o) => Math.max(0, o - limit))}>
           Anterior
-        </button>
-        <button disabled={!canNext || loading} onClick={() => setOffset((o) => o + limit)}>
+        </Button>
+        <Button variant="secondary" disabled={!canNext || loading} onClick={() => setOffset((o) => o + limit)}>
           Siguiente
-        </button>
+        </Button>
       </div>
 
-      {loading ? (
-        <div>Cargando...</div>
-      ) : (
-        <table width="100%" cellPadding={8} style={{ borderCollapse: "collapse" }}>
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+        <table className="w-full border-collapse text-sm">
           <thead>
-            <tr>
-              <th align="left">usuario</th>
-              <th align="left">aula</th>
-              <th align="left">motivo</th>
-              <th align="left">status</th>
-              <th align="left">start</th>
-              <th align="left">end</th>
-              <th align="left">acciones</th>
+            <tr className="border-b text-left text-slate-600">
+              <th className="px-4 py-3">Usuario</th>
+              <th className="px-4 py-3">Aula</th>
+              <th className="px-4 py-3">Motivo</th>
+              <th className="px-4 py-3">Estado</th>
+              <th className="px-4 py-3">Inicio</th>
+              <th className="px-4 py-3">Fin</th>
+              <th className="px-4 py-3">Acciones</th>
             </tr>
           </thead>
-          <tbody>
-            {items.map((b) => {
-              const canCancel = b.status === "CONFIRMED";
-              return (
-                <tr key={b.booking_id} style={{ borderTop: "1px solid #eee" }}>
-                  <td>{renderUser(b)}</td>
-                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>
-                    {classroomMap[b.classroom_id ?? ""] ?? (b.classroom_id ?? "-")}
-                  </td>
-                  <td>{(b as any).subject ?? "-"}</td>
-                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.status ?? "-"}</td>
-                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.start_time ?? "-"}</td>
-                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.end_time ?? "-"}</td>
-                  <td>
-                    <Button variant="danger" disabled={!canCancel} onClick={() => onCancel(b.booking_id)}>
-                      Cancelar
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
 
-            {items.length === 0 && (
+          <tbody>
+            {loading ? (
               <tr>
-                <td colSpan={7} style={{ padding: 16, color: "#666" }}>
+                <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                  Cargando...
+                </td>
+              </tr>
+            ) : items.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
                   No hay resultados con los filtros actuales.
                 </td>
               </tr>
+            ) : (
+              items.map((b) => {
+                const subject = (b as any).subject as string | undefined;
+                const classroomLabel = classroomMap[b.classroom_id ?? ""] ?? (b.classroom_id ?? "-");
+                const canCancel = tab === "mine" && b.status === "CONFIRMED";
+
+                return (
+                  <tr key={b.booking_id} className="border-b hover:bg-slate-50">
+                    <td className="px-4 py-3">{renderUser(b)}</td>
+                    <td className="px-4 py-3">{classroomLabel}</td>
+                    <td className="px-4 py-3">{subject ?? "-"}</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={[
+                          "rounded px-2 py-1 text-xs font-medium",
+                          b.status === "CONFIRMED"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-rose-100 text-rose-800",
+                        ].join(" ")}
+                      >
+                        {b.status ?? "-"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs">{b.start_time ?? "-"}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{b.end_time ?? "-"}</td>
+                    <td className="px-4 py-3">
+                      {canCancel ? (
+                        <Button variant="danger" onClick={() => onCancel(b.booking_id)}>
+                          Cancelar
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-slate-400">-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
-      )}
+      </div>
     </div>
   );
 }

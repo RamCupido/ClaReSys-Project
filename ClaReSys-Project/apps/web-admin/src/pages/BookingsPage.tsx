@@ -6,11 +6,6 @@ import type { Classroom } from "../api/classrooms";
 import { listUsers } from "../api/users";
 import type { User } from "../api/users";
 
-function asShortId(id?: string | null) {
-  if (!id) return "-";
-  return id.length > 10 ? `${id.slice(0, 8)}…` : id;
-}
-
 export default function BookingsPage() {
   const [items, setItems] = useState<BookingView[]>([]);
   const [total, setTotal] = useState(0);
@@ -27,9 +22,10 @@ export default function BookingsPage() {
   const [limit, setLimit] = useState<number>(50);
   const [offset, setOffset] = useState<number>(0);
 
-  // aulas para selector
+  // catálogos
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loadingCatalogs, setLoadingCatalogs] = useState(false);
 
   const canPrev = offset > 0;
   const canNext = offset + limit < total;
@@ -39,17 +35,35 @@ export default function BookingsPage() {
     [classroomId, classrooms]
   );
 
-  const loadRooms = async () => {
-    setLoadingRooms(true);
+  const classroomMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    classrooms.forEach((c) => (m[c.id] = c.code));
+    return m;
+  }, [classrooms]);
+
+  const userMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    users.forEach((u) => (m[u.id] = u.email));
+    return m;
+  }, [users]);
+
+  const loadCatalogs = async () => {
+    setLoadingCatalogs(true);
     try {
-      const data = await listClassrooms({ skip: 0, limit: 200 });
-      setClassrooms(data);
+      const [cls, us] = await Promise.all([
+        listClassrooms({ skip: 0, limit: 500 }),
+        listUsers({ skip: 0, limit: 500 }),
+      ]);
+      setClassrooms(cls);
+      setUsers(us);
+    } catch {
+      // no bloquea la página si falla
     } finally {
-      setLoadingRooms(false);
+      setLoadingCatalogs(false);
     }
   };
 
-  const load = async () => {
+  const loadBookings = async () => {
     setLoading(true);
     setErr(null);
     try {
@@ -65,7 +79,9 @@ export default function BookingsPage() {
     } catch (e: any) {
       const status = e?.response?.status;
       if (status === 404) {
-        setErr("Endpoint de reservas no encontrado. Verifica que query-engine esté levantado y enrute /api/v1/queries/.");
+        setErr(
+          "Endpoint de reservas no encontrado. Verifica que query-engine esté levantado y enrute /api/v1/queries/."
+        );
       } else {
         setErr(e?.response?.data?.detail ?? "Error cargando reservas.");
       }
@@ -74,29 +90,12 @@ export default function BookingsPage() {
     }
   };
 
-  const [users, setUsers] = useState<User[]>([]);
-
   useEffect(() => {
-    (async () => {
-      try {
-        const [cls, us] = await Promise.all([
-          listClassrooms({ skip: 0, limit: 500 }),
-          listUsers({ skip: 0, limit: 500 }),
-        ]);
-        setClassrooms(cls);
-        setUsers(us);
-      } catch {
-        // ignore
-      }
-    })();
+    loadCatalogs();
   }, []);
 
   useEffect(() => {
-    loadRooms();
-  }, []);
-
-  useEffect(() => {
-    load();
+    loadBookings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, classroomId, userId, limit, offset]);
 
@@ -108,22 +107,9 @@ export default function BookingsPage() {
     setOffset(0);
   };
 
-  const classroomMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    classrooms.forEach((c) => (m[c.id] = c.code));
-    return m;
-  }, [classrooms]);
-
-  const userMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    users.forEach((u) => (m[u.id] = u.email));
-    return m;
-  }, [users]);
-
-
   return (
     <div>
-      <h2>Reservas</h2>
+      <h2>Reservas (Admin)</h2>
 
       <div style={{ border: "1px solid #ddd", padding: 12, marginBottom: 16 }}>
         <h4>Filtros</h4>
@@ -149,7 +135,7 @@ export default function BookingsPage() {
                 setOffset(0);
                 setClassroomId(e.target.value);
               }}
-              disabled={loadingRooms}
+              disabled={loadingCatalogs}
             >
               <option value="">(todas)</option>
               {classrooms.map((c) => (
@@ -158,6 +144,7 @@ export default function BookingsPage() {
                 </option>
               ))}
             </select>
+
             {selectedRoom && (
               <div style={{ marginTop: 6, fontSize: 12, color: "#666" }}>
                 {selectedRoom.code} | ID: <span style={{ fontFamily: "monospace" }}>{selectedRoom.id}</span>
@@ -218,8 +205,8 @@ export default function BookingsPage() {
           <thead>
             <tr>
               <th align="left">booking_id</th>
-              <th align="left">classroom_id</th>
-              <th align="left">user_id</th>
+              <th align="left">aula (code)</th>
+              <th align="left">usuario (email)</th>
               <th align="left">status</th>
               <th align="left">start_time</th>
               <th align="left">end_time</th>
@@ -230,17 +217,22 @@ export default function BookingsPage() {
             {items.map((b) => (
               <tr key={b.booking_id} style={{ borderTop: "1px solid #eee" }}>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.booking_id}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{classroomMap[b.classroom_id ?? ""] ?? (b.classroom_id ? b.classroom_id : "-")}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{userMap[b.user_id ?? ""] ?? (b.user_id ? b.user_id : "-")}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                  {classroomMap[b.classroom_id ?? ""] ?? (b.classroom_id ?? "-")}
+                </td>
+                <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                  {userMap[b.user_id ?? ""] ?? (b.user_id ?? "-")}
+                </td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.status ?? "-"}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.start_time ?? "-"}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.end_time ?? "-"}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.subject ?? "-"}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{(b as any).subject ?? "-"}</td>
               </tr>
             ))}
+
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ padding: 16, color: "#666" }}>
+                <td colSpan={7} style={{ padding: 16, color: "#666" }}>
                   No hay resultados con los filtros actuales.
                 </td>
               </tr>
