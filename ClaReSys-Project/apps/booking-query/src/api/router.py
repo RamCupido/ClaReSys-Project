@@ -12,6 +12,7 @@ class BookingView(BaseModel):
     booking_id: UUID
     user_id: UUID | None = None
     classroom_id: UUID | None = None
+    subject: str | None = None
     status: str | None = None
 
     model_config = ConfigDict(extra="allow")

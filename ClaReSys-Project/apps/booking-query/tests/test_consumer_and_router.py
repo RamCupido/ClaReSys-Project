@@ -39,6 +39,7 @@ def sample_event(status="CONFIRMED"):
         "booking_id": booking_id,
         "user_id": user_id,
         "classroom_id": classroom_id,
+        "subject": "Sistemas Distribuidos",
         "status": status,
         "start_time": datetime(2026, 1, 15, 8, 0, tzinfo=timezone.utc).isoformat(),
         "end_time": datetime(2026, 1, 15, 10, 0, tzinfo=timezone.utc).isoformat(),

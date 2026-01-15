@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     classroom_id UUID NOT NULL,
     start_time timestamptz NOT NULL,
     end_time timestamptz NOT NULL,
+    subject VARCHAR(255),
     status VARCHAR(30) NOT NULL,
     created_at timestamptz DEFAULT now()
 );

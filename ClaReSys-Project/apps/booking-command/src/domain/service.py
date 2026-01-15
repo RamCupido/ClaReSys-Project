@@ -27,7 +27,7 @@ class BookingService:
         self.timetable_gw = timetable_gateway
         self.event_bus = event_bus
 
-    def create_booking(self, user_id: UUID, classroom_id: UUID, start_time: datetime, end_time: datetime):
+    def create_booking(self, user_id: UUID, classroom_id: UUID, start_time: datetime, end_time: datetime, subject: str | None = None):
 
         classroom = self.classroom_gw.get_classroom(classroom_id)
 
@@ -51,6 +51,7 @@ class BookingService:
             classroom_id=classroom_id,
             start_time=start_time,
             end_time=end_time,
+            subject=subject,
             status="CONFIRMED"
         )
 
@@ -65,6 +66,7 @@ class BookingService:
             "status": new_booking.status,
             "start_time": new_booking.start_time.isoformat(),
             "end_time": new_booking.end_time.isoformat(),
+            "subject": new_booking.subject,
         })
 
         return new_booking
@@ -99,6 +101,7 @@ class BookingService:
                 "status": booking.status,
                 "start_time": booking.start_time.isoformat(),
                 "end_time": booking.end_time.isoformat(),
+                "subject": getattr(booking, "subject", None),
             },
         )
 

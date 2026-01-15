@@ -23,6 +23,7 @@ class BookingCreateRequest(BaseModel):
     classroom_id: UUID
     start_time: datetime
     end_time: datetime
+    subject: str = Field(..., min_length=2, max_length=255, description="Materia o motivo de la reserva")
 
     @model_validator(mode="after")
     def validate_times(self):
@@ -54,6 +55,7 @@ def create_booking(
             classroom_id=request.classroom_id,
             start_time=request.start_time,
             end_time=request.end_time,
+            subject=request.subject,
         )
         return BookingResponse(
             id=booking.id,
@@ -161,6 +163,7 @@ def internal_list_bookings(
                 "status": b.status,
                 "start_time": b.start_time.isoformat() if b.start_time else None,
                 "end_time": b.end_time.isoformat() if b.end_time else None,
+                "subject": getattr(b, "subject", None),
                 # opcional
                 "created_at": b.created_at.isoformat() if getattr(b, "created_at", None) else None,
             }

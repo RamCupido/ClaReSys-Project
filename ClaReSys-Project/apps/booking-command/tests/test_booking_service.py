@@ -138,16 +138,20 @@ def test_create_booking_success_publishes_event():
         timetable_available=True,
     )
 
+    subject = "Sistemas Distribuidos"
+
     booking = service.create_booking(
         user_id=user_id,
         classroom_id=classroom_id,
         start_time=dt(1),
         end_time=dt(2),
+        subject=subject,
     )
 
     assert booking.status == "CONFIRMED"
     assert booking.id is not None
     assert booking.id in db._bookings
+    assert booking.subject == subject
 
     # Verifica publicación
     assert len(service.event_bus.published) == 1
@@ -157,6 +161,7 @@ def test_create_booking_success_publishes_event():
     assert payload["user_id"] == str(user_id)
     assert payload["classroom_id"] == str(classroom_id)
     assert payload["status"] == "CONFIRMED"
+    assert payload["subject"] == subject
     assert "start_time" in payload
     assert "end_time" in payload
 

@@ -13,6 +13,7 @@ class Booking(Base):
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
     
+    subject = Column(String(255), nullable=True)
+
     status = Column(String, default="CONFIRMED") # CONFIRMED, CANCELLED
     
-    # En el futuro aquí agregaremos 'created_at' etc.
