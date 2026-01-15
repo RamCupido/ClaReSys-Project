@@ -191,6 +191,7 @@ export default function BookingsPage() {
               <th align="left">status</th>
               <th align="left">start_time</th>
               <th align="left">end_time</th>
+              <th align="left">subject</th>
             </tr>
           </thead>
           <tbody>
@@ -202,6 +203,7 @@ export default function BookingsPage() {
                 <td>{b.status ?? "-"}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.start_time ?? "-"}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.end_time ?? "-"}</td>
+                <td>{b.subject ?? "-"}</td>
               </tr>
             ))}
             {items.length === 0 && (

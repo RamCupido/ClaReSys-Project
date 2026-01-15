@@ -53,7 +53,6 @@ export default function CreateBookingPage() {
 
   // Fecha + hora numérica
   const [dateStr, setDateStr] = useState(() => {
-    // default: hoy (puede ser fin de semana; validación lo controla)
     const now = new Date();
     return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
   });
@@ -62,6 +61,8 @@ export default function CreateBookingPage() {
   const [startMinute, setStartMinute] = useState<number>(0);
   const [endHour, setEndHour] = useState<number>(8);
   const [endMinute, setEndMinute] = useState<number>(0);
+
+  const [subject, setSubject] = useState<string>("");
 
   const [result, setResult] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -136,8 +137,9 @@ export default function CreateBookingPage() {
         classroom_id: classroomId,
         start_time: startIso,
         end_time: endIso,
+        subject: subject.trim() ? subject.trim() : null,
       });
-
+      setSubject("");
       setResult(`OK: ${res.message} (status=${res.status}, id=${res.id})`);
     } catch (e: any) {
       const status = e?.response?.status;
@@ -285,6 +287,23 @@ export default function CreateBookingPage() {
                 Rango inválido: la hora fin debe ser posterior a la hora inicio.
               </Alert>
             )}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="font-semibold text-slate-900">Motivo de la reserva</div>
+          </CardHeader>
+          <CardBody className="space-y-2">
+            <label className="mb-1 block text-sm font-medium text-slate-700">Asunto (subject)</label>
+            <Input
+              placeholder='Ej: "Clases Matemáticas"'
+              maxLength={255}
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+            <div className="text-xs text-slate-500">
+              Máximo 255 caracteres.
+            </div>
           </CardBody>
         </Card>
 

@@ -5,6 +5,7 @@ export type CreateBookingRequest = {
   classroom_id: string;
   start_time: string; // "2025-10-20T12:30:00"
   end_time: string;   // "2025-10-20T13:00:00"
+  subject?: string | null;
 };
 
 export type CreateBookingResponse = {
