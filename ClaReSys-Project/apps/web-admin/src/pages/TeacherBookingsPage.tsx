@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { listBookings } from "../api/bookingsQuery";
 import type { BookingView } from "../api/bookingsQuery";
@@ -6,6 +6,7 @@ import { listClassrooms } from "../api/classrooms";
 import type { Classroom } from "../api/classrooms";
 import { cancelBooking } from "../api/bookings";
 import Button from "../ui/Button";
+import { storage } from "../auth/storage";
 
 function asShortId(id?: string | null) {
   if (!id) return "-";
@@ -16,6 +17,7 @@ type Tab = "mine" | "all";
 
 export default function TeacherBookingsPage() {
   const { userId } = useAuth();
+  const myEmail = storage.getEmail() ?? "(yo)";
 
   const [tab, setTab] = useState<Tab>("mine");
   const [items, setItems] = useState<BookingView[]>([]);
@@ -34,6 +36,12 @@ export default function TeacherBookingsPage() {
 
   const canPrev = offset > 0;
   const canNext = offset + limit < total;
+
+  const classroomMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    classrooms.forEach((c) => (m[c.id] = c.code));
+    return m;
+  }, [classrooms]);
 
   const loadRooms = async () => {
     setLoadingRooms(true);
@@ -70,7 +78,6 @@ export default function TeacherBookingsPage() {
   }, []);
 
   useEffect(() => {
-    // si cambias tab, reinicia offset
     setOffset(0);
   }, [tab]);
 
@@ -86,7 +93,7 @@ export default function TeacherBookingsPage() {
     setErr(null);
     try {
       await cancelBooking(bookingId);
-      await load(); // vuelve a cargar la lista
+      await load();
     } catch (e: any) {
       const status = e?.response?.status;
       if (status === 403) {
@@ -99,22 +106,24 @@ export default function TeacherBookingsPage() {
     }
   };
 
+  const renderUser = (b: BookingView) => {
+    // Si query-engine algún día devuelve user_email, lo aprovechamos sin tocar código
+    const anyB = b as any;
+    const userEmail = anyB.user_email as string | undefined;
+
+    if (tab === "mine") return myEmail;
+    return userEmail ?? asShortId(b.user_id);
+  };
 
   return (
     <div>
       <h2>Reservas</h2>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <button
-          onClick={() => setTab("mine")}
-          disabled={tab === "mine"}
-        >
+        <button onClick={() => setTab("mine")} disabled={tab === "mine"}>
           Mis reservas
         </button>
-        <button
-          onClick={() => setTab("all")}
-          disabled={tab === "all"}
-        >
+        <button onClick={() => setTab("all")} disabled={tab === "all"}>
           Todas
         </button>
       </div>
@@ -203,64 +212,44 @@ export default function TeacherBookingsPage() {
         <table width="100%" cellPadding={8} style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th align="left">booking_id</th>
-              <th align="left">classroom_id</th>
+              <th align="left">usuario</th>
+              <th align="left">aula</th>
+              <th align="left">motivo</th>
               <th align="left">status</th>
-              <th align="left">start_time</th>
-              <th align="left">end_time</th>
+              <th align="left">start</th>
+              <th align="left">end</th>
               <th align="left">acciones</th>
             </tr>
           </thead>
           <tbody>
-            {items.map((b) => (
-
-              <tr key={b.booking_id} style={{ borderTop: "1px solid #eee" }}>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.booking_id}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{asShortId(b.classroom_id)}</td>
-                <td>{b.status ?? "-"}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.start_time ?? "-"}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.end_time ?? "-"}</td>
-              </tr>
-            ))}
-            {items.length === 0 && (
-              <tr>
-                <td colSpan={5} style={{ padding: 16, color: "#666" }}>
-                  No hay resultados con los filtros actuales.
-                </td>
-              </tr>
-            )}
             {items.map((b) => {
               const canCancel = b.status === "CONFIRMED";
-
               return (
-                <tr key={b.booking_id} className="border-t">
-                  <td className="font-mono text-xs">{b.booking_id}</td>
-                  <td className="font-mono text-xs">{b.classroom_id}</td>
-                  <td>
-                    <span
-                      className={
-                        b.status === "CONFIRMED"
-                          ? "rounded bg-emerald-100 px-2 py-1 text-xs text-emerald-800"
-                          : "rounded bg-slate-200 px-2 py-1 text-xs text-slate-700"
-                      }
-                    >
-                      {b.status}
-                    </span>
+                <tr key={b.booking_id} style={{ borderTop: "1px solid #eee" }}>
+                  <td>{renderUser(b)}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                    {classroomMap[b.classroom_id ?? ""] ?? (b.classroom_id ?? "-")}
                   </td>
-                  <td className="font-mono text-xs">{b.start_time}</td>
-                  <td className="font-mono text-xs">{b.end_time}</td>
+                  <td>{(b as any).subject ?? "-"}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.status ?? "-"}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.start_time ?? "-"}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.end_time ?? "-"}</td>
                   <td>
-                    <Button
-                      variant="danger"
-                      disabled={!canCancel}
-                      onClick={() => onCancel(b.booking_id)}
-                    >
+                    <Button variant="danger" disabled={!canCancel} onClick={() => onCancel(b.booking_id)}>
                       Cancelar
                     </Button>
                   </td>
                 </tr>
               );
             })}
+
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={7} style={{ padding: 16, color: "#666" }}>
+                  No hay resultados con los filtros actuales.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       )}

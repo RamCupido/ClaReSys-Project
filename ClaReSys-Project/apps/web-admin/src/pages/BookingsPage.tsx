@@ -3,6 +3,8 @@ import { listBookings } from "../api/bookingsQuery";
 import type { BookingView } from "../api/bookingsQuery";
 import { listClassrooms } from "../api/classrooms";
 import type { Classroom } from "../api/classrooms";
+import { listUsers } from "../api/users";
+import type { User } from "../api/users";
 
 function asShortId(id?: string | null) {
   if (!id) return "-";
@@ -72,6 +74,23 @@ export default function BookingsPage() {
     }
   };
 
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [cls, us] = await Promise.all([
+          listClassrooms({ skip: 0, limit: 500 }),
+          listUsers({ skip: 0, limit: 500 }),
+        ]);
+        setClassrooms(cls);
+        setUsers(us);
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     loadRooms();
   }, []);
@@ -88,6 +107,19 @@ export default function BookingsPage() {
     setLimit(50);
     setOffset(0);
   };
+
+  const classroomMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    classrooms.forEach((c) => (m[c.id] = c.code));
+    return m;
+  }, [classrooms]);
+
+  const userMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    users.forEach((u) => (m[u.id] = u.email));
+    return m;
+  }, [users]);
+
 
   return (
     <div>
@@ -198,12 +230,12 @@ export default function BookingsPage() {
             {items.map((b) => (
               <tr key={b.booking_id} style={{ borderTop: "1px solid #eee" }}>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.booking_id}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{asShortId(b.classroom_id)}</td>
-                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{asShortId(b.user_id)}</td>
-                <td>{b.status ?? "-"}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{classroomMap[b.classroom_id ?? ""] ?? (b.classroom_id ? b.classroom_id : "-")}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{userMap[b.user_id ?? ""] ?? (b.user_id ? b.user_id : "-")}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.status ?? "-"}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.start_time ?? "-"}</td>
                 <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.end_time ?? "-"}</td>
-                <td>{b.subject ?? "-"}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 12 }}>{b.subject ?? "-"}</td>
               </tr>
             ))}
             {items.length === 0 && (

@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       storage.setToken(res.access_token);
       storage.setRole(res.role);
       storage.setUserId(res.user_id);
+      storage.setEmail(req.email);
       setToken(res.access_token);
       setRole(res.role);
       setUserId(res.user_id);
