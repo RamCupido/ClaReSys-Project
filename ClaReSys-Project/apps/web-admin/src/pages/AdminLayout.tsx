@@ -2,9 +2,9 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import Button from "../ui/Button";
 
-function NavItem({ to, label }: { to: string; label: string }) {
+function NavItem({ to, label, exact = false }: { to: string; label: string; exact?: boolean }) {
   const loc = useLocation();
-  const active = loc.pathname === to || loc.pathname.startsWith(to + "/");
+  const active = exact ? loc.pathname === to : loc.pathname.startsWith(to + "/");
   return (
     <Link
       to={to}
@@ -38,11 +38,11 @@ export default function AdminLayout() {
             </div>
 
             <nav className="space-y-1">
-              <NavItem to="/admin/classrooms" label="Aulas" />
-              <NavItem to="/admin/users" label="Usuarios" />
-              <NavItem to="/admin/bookings" label="Reservas" />
-              <NavItem to="/admin/bookings/create" label="Crear Reserva" />
-              <NavItem to="/admin/reports" label="Reportes" />
+              <NavItem to="/admin/classrooms" label="Aulas" exact/>
+              <NavItem to="/admin/users" label="Usuarios" exact/>
+              <NavItem to="/admin/bookings" label="Reservas" exact/>
+              <NavItem to="/admin/bookings/create" label="Crear Reserva" exact/>
+              <NavItem to="/admin/reports" label="Reportes" exact/>
             </nav>
 
             <div className="mt-4">

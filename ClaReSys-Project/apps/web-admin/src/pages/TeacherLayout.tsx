@@ -2,9 +2,9 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import Button from "../ui/Button";
 
-function NavItem({ to, label }: { to: string; label: string }) {
+function NavItem({ to, label, exact = false }: { to: string; label: string; exact?: boolean }) {
   const loc = useLocation();
-  const active = loc.pathname === to || loc.pathname.startsWith(to + "/");
+  const active = exact ? loc.pathname === to : loc.pathname.startsWith(to + "/");
   return (
     <Link
       to={to}
@@ -38,8 +38,8 @@ export default function TeacherLayout() {
             </div>
 
             <nav className="space-y-1">
-              <NavItem to="/teacher/bookings" label="Reservas" />
-              <NavItem to="/teacher/bookings/create" label="Crear Reserva" />
+              <NavItem to="/teacher/bookings" label="Reservas" exact/>
+              <NavItem to="/teacher/bookings/create" label="Crear Reserva" exact/>
             </nav>
 
             <div className="mt-4">
