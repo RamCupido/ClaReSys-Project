@@ -438,18 +438,6 @@ services:
       reporting-service:
         condition: service_healthy
 
-  # Web Frontend Service
-  front-web:
-    build:
-      context: .
-      dockerfile: apps/front-web/Dockerfile
-    container_name: web_admin_container
-    ports:
-      - "5173:80"
-    depends_on:
-      api-gateway:
-        condition: service_started
-
 volumes:
   classroom_data:
   booking_data:

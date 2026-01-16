@@ -9,7 +9,13 @@ from src.schemas.classroom import ClassroomCreate, ClassroomResponse, ClassroomU
 
 router = APIRouter()
 
-@router.post("/", response_model=ClassroomResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", 
+             response_model=ClassroomResponse, 
+             status_code=status.HTTP_201_CREATED, summary="Create a new classroom", 
+             description="Create a new classroom with a unique code, capacity, location details, and operational status.",
+             responses={
+                 201: {"description": "Classroom created successfully."},
+                 409: {"description": "Classroom code already registered."}})
 def create_classroom(payload: ClassroomCreate, db: Session = Depends(get_db)):
     code = payload.code.strip().upper()
 
@@ -30,7 +36,13 @@ def create_classroom(payload: ClassroomCreate, db: Session = Depends(get_db)):
     db.refresh(new_classroom)
     return new_classroom
 
-@router.get("/", response_model=list[ClassroomResponse])
+@router.get("/", 
+            response_model=list[ClassroomResponse],
+            summary="List classrooms",
+            description="Retrieve a list of classrooms with optional filtering for operational status.",
+            responses={
+                200: {"description": "List of classrooms retrieved successfully."},
+            })
 def list_classrooms(
     skip: int = 0,
     limit: int = 100,
@@ -42,14 +54,27 @@ def list_classrooms(
         q = q.filter(Classroom.is_operational.is_(True))
     return q.offset(skip).limit(limit).all()
 
-@router.get("/{classroom_id}", response_model=ClassroomResponse)
+@router.get("/{classroom_id}", 
+            response_model=ClassroomResponse,
+            summary="Get classroom by ID",
+            description="Retrieve a classroom by its unique ID.",
+            responses={
+                200: {"description": "Classroom retrieved successfully."},
+                404: {"description": "Classroom not found."}})
 def get_classroom(classroom_id: UUID, db: Session = Depends(get_db)):
     classroom = db.query(Classroom).filter_by(id=classroom_id).first()
     if not classroom:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classroom not found")
     return classroom
 
-@router.patch("/{classroom_id}", response_model=ClassroomResponse)
+@router.patch("/{classroom_id}", 
+              response_model=ClassroomResponse,
+              summary="Update classroom",
+              description="Update details of an existing classroom. Only provided fields will be updated.",
+              responses={
+                  200: {"description": "Classroom updated successfully."},
+                  404: {"description": "Classroom not found."},
+                  409: {"description": "Classroom code already registered."}})
 def update_classroom(classroom_id: UUID, payload: ClassroomUpdate, db: Session = Depends(get_db)):
     classroom = db.query(Classroom).filter_by(id=classroom_id).first()
     if not classroom:
@@ -71,7 +96,13 @@ def update_classroom(classroom_id: UUID, payload: ClassroomUpdate, db: Session =
     db.refresh(classroom)
     return classroom
 
-@router.delete("/{classroom_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{classroom_id}", 
+               status_code=status.HTTP_204_NO_CONTENT,
+               summary="Delete classroom",
+               description="Delete a classroom by its unique ID.",
+               responses={
+                   204: {"description": "Classroom deleted successfully."},
+                   404: {"description": "Classroom not found."}})
 def delete_classroom(classroom_id: UUID, db: Session = Depends(get_db)):
     classroom = db.query(Classroom).filter(Classroom.id == classroom_id).first()
     if not classroom:
