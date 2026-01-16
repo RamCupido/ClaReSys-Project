@@ -1,34 +1,39 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, RefreshControl } from "react-native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+
 import { colors } from "../../../theme/colors";
 import { spacing } from "../../../theme/spacing";
+
 import { AppHeader } from "../../../components/AppHeader";
 import { SearchBar } from "../../../components/SearchBar";
 import { NowClassCard } from "../../../components/NowClassCard";
 import { UpcomingBookingCard } from "../../../components/UpcomingBookingCard";
+
 import { classroomsApi, Classroom } from "../../../services/api/classrooms.api";
 import { bookingsApi, Booking } from "../../../services/api/bookings.api";
-import { formatMonthDay, formatTimeRange, isFuture, isNowBetween } from "../../../utils/datetime";
-import { useFocusEffect } from "@react-navigation/native";
+
+import { formatMonthDay, formatTimeRange, isFuture, isNowBetween, } from "../../../utils/datetime";
 
 type UpcomingItem = {
-  bookingId: string;
+  booking: Booking;
   month: string;
   day: string;
   classroomTitle: string;
-  subject?: string;
+  subtitle: string;
 };
 
 export function HomeScreen() {
+  const navigation = useNavigation<any>();
+
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
 
-  // En tu app real, esto debe venir del store (auth.store) o del JWT decodificado
-  const teacherName = "Ramsés";
-  const teacherTop = "Hola, Docente";
+  const teacherTop = "Bienvenido,";
+  const teacherName = "Hola Docente";
 
   const classroomCodeById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -36,49 +41,64 @@ export function HomeScreen() {
     return map;
   }, [classrooms]);
 
-  const activeBooking = useMemo(() => {
-    return bookings.find(
-      (b) => b.status === "CONFIRMED" && isNowBetween(b.start_time, b.end_time)
-    );
+  const confirmedBookings = useMemo(() => {
+    return bookings.filter((b) => b.status === "CONFIRMED");
   }, [bookings]);
 
+  const activeBooking = useMemo(() => {
+    return confirmedBookings.find((b) => isNowBetween(b.start_time, b.end_time));
+  }, [confirmedBookings]);
+
   const upcomingList: UpcomingItem[] = useMemo(() => {
-    const upcoming = bookings
-      .filter((b) => b.status === "CONFIRMED" && isFuture(b.start_time))
+    const upcoming = confirmedBookings
+      .filter((b) => isFuture(b.start_time))
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
     return upcoming.map((b) => {
       const { month, day } = formatMonthDay(b.start_time);
+      const classroomTitle = classroomCodeById[b.classroom_id] ?? "Aula";
+      const time = formatTimeRange(b.start_time, b.end_time);
+      const subtitle = b.subject ? `${b.subject} · ${time}` : time;
+
       return {
-        bookingId: b.booking_id,
+        booking: b,
         month,
         day,
-        classroomTitle: classroomCodeById[b.classroom_id] ?? "Aula",
-        subject: b.subject,
+        classroomTitle,
+        subtitle,
       };
     });
-  }, [bookings, classroomCodeById]);
+  }, [confirmedBookings, classroomCodeById]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      // 1) aulas operativas (para resolver classroom_id -> code)
+      // 1) Aulas operativas (para resolver classroom_id -> code)
       const cls = await classroomsApi.listOperational();
       setClassrooms(cls);
 
-      // 2) bookings (query)
+      // 2) Bookings (query)
       const bks = await bookingsApi.list();
       setBookings(bks);
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
+  // Refresca siempre al volver a Home (ideal para reflejar create/cancel)
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       load();
-    }, [])
+    }, [load])
   );
+
+  function openBookingDetail(booking: Booking, classroomTitle: string) {
+    // Navega al tab Bookings y abre el detalle dentro del stack de Bookings
+    navigation.navigate("Bookings", {
+      screen: "BookingDetail",
+      params: { booking, classroomTitle },
+    });
+  }
 
   return (
     <View style={styles.screen}>
@@ -86,7 +106,7 @@ export function HomeScreen() {
         titleTop={teacherTop}
         titleMain={teacherName}
         onPressBell={() => {
-          // futuro: navegación a notificaciones
+          // futuro: notificaciones
         }}
       />
 
@@ -94,10 +114,10 @@ export function HomeScreen() {
         <SearchBar
           value={query}
           onChangeText={setQuery}
-          placeholder="Buscar aula (ej. Lab 1)..."
+          placeholder="Buscar aula (ej. AULAS A-33)..."
           onSubmit={() => {
-            // En el siguiente paso hacemos la pantalla SearchClassrooms
-            // y navegamos con el query.
+            // Siguiente iteración: navegar a pantalla de búsqueda si la agregas como modal/stack
+            // Por ahora, se queda como input visual.
           }}
         />
 
@@ -109,14 +129,21 @@ export function HomeScreen() {
               statusLabel="EN CLASE"
               subject={activeBooking.subject}
             />
-          ) : null}
+          ) : (
+            <View style={styles.noActiveCard}>
+              <Text style={styles.noActiveTitle}>Sin clase activa</Text>
+              <Text style={styles.noActiveSub}>
+                Revisa tus próximas reservas o crea una nueva con el botón +.
+              </Text>
+            </View>
+          )}
         </View>
 
         <Text style={styles.sectionTitle}>MIS PRÓXIMAS CLASES</Text>
 
         <FlatList
           data={upcomingList}
-          keyExtractor={(i) => i.bookingId}
+          keyExtractor={(i) => i.booking.booking_id}
           contentContainerStyle={{ paddingBottom: 120, gap: 12 }}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
           renderItem={({ item }) => (
@@ -124,17 +151,15 @@ export function HomeScreen() {
               month={item.month}
               day={item.day}
               title={item.classroomTitle}
-              subtitle={item.subject}
-              onPress={() => {
-                // siguiente iteración: BookingDetail
-              }}
+              subtitle={item.subtitle}
+              onPress={() => openBookingDetail(item.booking, item.classroomTitle)}
             />
           )}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>No tienes clases próximas</Text>
               <Text style={styles.emptySub}>
-                Crea una reserva con el botón + (lo implementamos después).
+                Crea una reserva desde el botón + para que aparezca aquí.
               </Text>
             </View>
           }
@@ -152,7 +177,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: spacing.md,
-    marginTop: -18, // sube el search para que “flote” sobre el header como en tu imagen
+    marginTop: -18,
   },
   sectionTitle: {
     marginTop: spacing.lg,
@@ -164,7 +189,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     marginTop: spacing.xl,
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 16,
     padding: spacing.lg,
     borderWidth: 1,
@@ -180,5 +205,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "600",
     color: colors.muted,
+  },
+  noActiveCard: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  noActiveTitle: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: colors.text,
+  },
+  noActiveSub: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.muted,
+    lineHeight: 18,
   },
 });

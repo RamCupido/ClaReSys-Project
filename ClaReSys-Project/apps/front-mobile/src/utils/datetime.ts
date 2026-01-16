@@ -32,3 +32,14 @@ export function formatMonthDay(startISO: string) {
   const day = String(d.getDate()).padStart(2, "0"); // "09"
   return { month, day };
 }
+
+export function isPast(endISO: string) {
+  const now = new Date();
+  const end = parseDate(endISO);
+  return end < now;
+}
+
+export function sortByStartAsc(aISO: string, bISO: string) {
+  return new Date(aISO).getTime() - new Date(bISO).getTime();
+}
+
