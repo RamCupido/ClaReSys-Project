@@ -9,6 +9,7 @@
     "dev:infra": "docker compose up -d classroom-db booking-db users-db rabbitmq redis mailhog mongodb kafka",
     "dev:backend": "docker compose up classroom-service timetable-engine booking-command booking-query notification-service user-service auth-service api-gateway audit-log-service maintenance-service reporting-service",
     "dev:web": "npm --workspace apps/front-web run dev",
+    "dev:mobile": "npm --workspace apps/front-mobile run dev",
     "dev": "npm run dev:infra && concurrently -n BACKEND,WEB \"npm run dev:backend\" \"npm run dev:web\"",
 
     "build": "turbo run build",

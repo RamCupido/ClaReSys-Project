@@ -438,7 +438,7 @@ services:
       reporting-service:
         condition: service_healthy
 
-  # Web Admin Frontend Service
+  # Web Frontend Service
   front-web:
     build:
       context: .
