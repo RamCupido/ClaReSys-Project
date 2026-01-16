@@ -36,7 +36,18 @@ class BookingResponse(BaseModel):
     status: str
     message: str
 
-@router.post("/",response_model=BookingResponse,status_code=status.HTTP_201_CREATED)
+@router.post("/",
+             response_model=BookingResponse,
+             status_code=status.HTTP_201_CREATED,
+             summary="Create a new booking",
+             description="Create a new booking for a classroom.",
+             responses={
+                 201: {"description": "Booking created successfully."},
+                 401: {"description": "Unauthorized."},
+                 404: {"description": "Classroom not found."},
+                 409: {"description": "Classroom unavailable or schedule conflict."},
+                 422: {"description": "Validation error."},
+                 503: {"description": "Timetable service unavailable."},})
 def create_booking(
     request: BookingCreateRequest,
     db: Session = Depends(get_db),
@@ -82,18 +93,23 @@ def create_booking(
         print(f"[booking-command] Internal error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-@router.delete("/{booking_id}", response_model=BookingResponse, status_code=status.HTTP_200_OK)
+@router.delete("/{booking_id}",
+               response_model=BookingResponse,
+               status_code=status.HTTP_200_OK,
+               summary="Cancel a booking",
+               description="Cancel an existing booking by its ID.",
+               responses={
+                   200: {"description": "Booking canceled successfully."},
+                   401: {"description": "Unauthorized."},
+                   403: {"description": "Forbidden."},
+                   404: {"description": "Booking not found."},
+                   422: {"description": "Validation error."},})
 def cancel_booking(
     booking_id: UUID,
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(get_current_user),
 ):
-    """Cancela (soft-delete) una reserva.
-
-    - Mantiene el registro en la BD.
-    - Publica evento booking.canceled para que el query service actualice Redis.
-    """
-
+    
     service = BookingService(
         db=db,
         classroom_gateway=HttpClassroomGateway(),
@@ -131,16 +147,20 @@ def _require_internal_key(x_internal_api_key: Optional[str]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal key")
 
 
-@router.get("/internal/bookings")
+@router.get("/internal/bookings",
+            tags=["internal"],
+            summary="List all bookings (internal use only)",
+            description="Retrieve a list of all bookings. This endpoint is for internal use only.",
+            responses={
+                200: {"description": "List of bookings retrieved successfully."},
+                401: {"description": "Unauthorized."},
+            })
 def internal_list_bookings(
     limit: int = 1000,
     offset: int = 0,
     db: Session = Depends(get_db),
     x_internal_api_key: Optional[str] = Header(default=None),
 ):
-    """
-    Exporta bookings desde el write-store (Postgres) para rehidratar el read-model.
-    """
     _require_internal_key(x_internal_api_key)
 
     # Ajusta la referencia al modelo Booking según tu proyecto
