@@ -1,6 +1,9 @@
 import os
 from fastapi import FastAPI
 from src.routes.auth import router
+from common.logger import get_logger
+
+logger = get_logger("auth-service")
 
 ENV = os.getenv("ENV", "development").lower()
 ENABLE_DOCS = os.getenv("ENABLE_DOCS", "true").lower() == "true"
@@ -10,7 +13,6 @@ if ENV == "production":
 
 openapi_tags = [
     {"name": "auth", "description": "Authentication and authorization endpoints."},
-    {"name": "health", "description": "Health status of the service."},
 ]
 
 app = FastAPI(
@@ -26,6 +28,10 @@ app = FastAPI(
 )
 
 app.include_router(router, prefix="/api/v1/auth", tags=["auth"])
+
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Auth Service is starting up...")
 
 @app.get("/health", tags=["health"])
 def health_check():

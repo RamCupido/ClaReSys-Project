@@ -15,7 +15,15 @@ class TokenResponse(BaseModel):
     user_id: str
     role: str
 
-@router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
+@router.post("/login",
+             response_model=TokenResponse,
+             status_code=status.HTTP_200_OK,
+             summary="User login",
+             description="Authenticate user and return access token.",
+             responses={
+                 200: {"description": "Successful login"},
+                 401: {"description": "Invalid credentials"},
+                 503: {"description": "User service unavailable"},})
 def login(request: LoginRequest):
     gateway = UserGateway()
     try:
