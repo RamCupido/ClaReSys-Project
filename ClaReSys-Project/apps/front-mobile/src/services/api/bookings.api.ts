@@ -17,4 +17,19 @@ export const bookingsApi = {
     );
     return data.items;
   },
+
+  async create(payload: {
+    classroom_id: string;
+    start_time: string;
+    end_time: string;
+    subject?: string;
+  }) {
+    const { data } = await api.post("/api/v1/bookings/", payload);
+    return data;
+  },
+
+  async cancel(bookingId: string) {
+    const { data } = await api.delete(`/api/v1/bookings/${bookingId}`);
+    return data;
+  },
 };

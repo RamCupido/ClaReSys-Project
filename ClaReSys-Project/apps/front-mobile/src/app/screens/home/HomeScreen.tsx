@@ -9,6 +9,7 @@ import { UpcomingBookingCard } from "../../../components/UpcomingBookingCard";
 import { classroomsApi, Classroom } from "../../../services/api/classrooms.api";
 import { bookingsApi, Booking } from "../../../services/api/bookings.api";
 import { formatMonthDay, formatTimeRange, isFuture, isNowBetween } from "../../../utils/datetime";
+import { useFocusEffect } from "@react-navigation/native";
 
 type UpcomingItem = {
   bookingId: string;
@@ -73,9 +74,11 @@ export function HomeScreen() {
     }
   }
 
-  useEffect(() => {
-    void load();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      load();
+    }, [])
+  );
 
   return (
     <View style={styles.screen}>

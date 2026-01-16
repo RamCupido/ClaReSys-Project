@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuthStore } from "../../store/auth.store";
 import { LoginScreen } from "../screens/auth/LoginScreen";
 import { TabsNavigator } from "./TabsNavigator";
-import { CreateBookingScreen } from "../screens/bookings/CreateBookingScreen";
+import { CreateBookingModal } from "./CreateBookingModal";
 
 type RootStackParamList = {
   Login: undefined;
@@ -48,11 +48,8 @@ export function RootNavigator() {
 
             <Stack.Screen
               name="CreateBooking"
-              component={CreateBookingScreen}
-              options={{
-                presentation: "modal",
-                headerShown: false,
-              }}
+              component={CreateBookingModal}
+              options={{ presentation: "transparentModal" }}
             />
           </>
         )}

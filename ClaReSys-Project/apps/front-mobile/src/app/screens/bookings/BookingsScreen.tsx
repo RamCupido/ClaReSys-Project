@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, FlatList, RefreshControl, StyleSheet } from "react-native";
 import { colors } from "../../../theme/colors";
 import { spacing } from "../../../theme/spacing";
@@ -6,6 +6,7 @@ import { bookingsApi, Booking } from "../../../services/api/bookings.api";
 import { classroomsApi, Classroom } from "../../../services/api/classrooms.api";
 import { formatTimeRange, formatMonthDay } from "../../../utils/datetime";
 import { UpcomingBookingCard } from "../../../components/UpcomingBookingCard";
+import { useFocusEffect } from "@react-navigation/native";
 
 export function BookingsScreen() {
   const [loading, setLoading] = useState(false);
@@ -32,9 +33,11 @@ export function BookingsScreen() {
     }
   }
 
-  useEffect(() => {
-    void load();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      load();
+    }, [])
+  );
 
   return (
     <View style={styles.screen}>
