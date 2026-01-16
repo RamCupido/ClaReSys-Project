@@ -10,7 +10,14 @@ from src.schemas.user import UserCreate, UserResponse, UserUpdate
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", 
+             response_model=UserResponse, 
+             status_code=status.HTTP_201_CREATED,
+             summary="Create a new user",
+             description="Create a new user with the provided email and password.",
+             responses={
+                 201: {"description": "User created successfully."},
+                 409: {"description": "Email already registered."}})
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(payload.password)
 
@@ -31,18 +38,34 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
-@router.get("/", response_model=list[UserResponse])
+@router.get("/", 
+            response_model=list[UserResponse],
+            summary="List all users",
+            description="Retrieve a list of all users in the system.",)
 def list_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(User).offset(skip).limit(limit).all()
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get("/{user_id}", 
+            response_model=UserResponse,
+            summary="Get user by ID",
+            description="Retrieve a user by their unique ID.",
+            responses={
+                200: {"description": "User retrieved successfully."},
+                404: {"description": "User not found."}})
 def get_user(user_id: UUID, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
 
-@router.patch("/{user_id}", response_model=UserResponse)
+@router.patch("/{user_id}", 
+              response_model=UserResponse,
+              summary="Update user by ID",
+              description="Update a user's information by their unique ID.",
+              responses={
+                  200: {"description": "User updated successfully."},
+                  404: {"description": "User not found."},
+                  409: {"description": "Email already registered."}})
 def update_user(user_id: UUID, payload: UserUpdate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -64,7 +87,13 @@ def update_user(user_id: UUID, payload: UserUpdate, db: Session = Depends(get_db
     db.refresh(user)
     return user
 
-@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{user_id}", 
+               status_code=status.HTTP_204_NO_CONTENT,
+               summary="Delete user by ID",
+               description="Delete a user by their unique ID.",
+               responses={
+                   204: {"description": "User deleted successfully."},
+                   404: {"description": "User not found."}})
 def delete_user(user_id: UUID, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:

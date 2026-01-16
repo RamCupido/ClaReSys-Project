@@ -15,14 +15,14 @@ if ENV == "production":
 openapi_tags = [
     {
         "name": "classrooms",
-        "description": "Operaciones para gestionar aulas (CRUD, filtros).",
+        "description": "Operations for managing classrooms (CRUD, status, assignments).",
     },
 ]
 
 app = FastAPI(
     title="ClaReSys - Classroom Service",
     version="1.0.0",
-    description="Microservicio responsable de la gestión de aulas (creación, consulta, actualización y eliminación).",
+    description="Microservice responsible for managing classrooms (creation, retrieval, updating, and deletion).",
     openapi_tags=openapi_tags,
     docs_url="/docs" if ENABLE_DOCS else None,
     redoc_url="/redoc" if ENABLE_DOCS else None,
