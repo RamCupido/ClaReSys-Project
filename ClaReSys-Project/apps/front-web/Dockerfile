@@ -3,16 +3,16 @@ WORKDIR /repo
 
 COPY package.json package-lock.json ./
 
-COPY apps/web-admin/package.json apps/web-admin/package.json
+COPY apps/front-web/package.json apps/front-web/package.json
 
 RUN npm ci
 
 COPY . .
 
-RUN npm --prefix apps/web-admin run build
+RUN npm --prefix apps/front-web run build
 
 FROM nginx:alpine
-COPY --from=build /repo/apps/web-admin/dist /usr/share/nginx/html
+COPY --from=build /repo/apps/front-web/dist /usr/share/nginx/html
 
 # SPA fallback (React Router)
 RUN printf "server {\n\

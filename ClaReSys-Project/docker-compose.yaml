@@ -439,10 +439,10 @@ services:
         condition: service_healthy
 
   # Web Admin Frontend Service
-  web-admin:
+  front-web:
     build:
       context: .
-      dockerfile: apps/web-admin/Dockerfile
+      dockerfile: apps/front-web/Dockerfile
     container_name: web_admin_container
     ports:
       - "5173:80"
