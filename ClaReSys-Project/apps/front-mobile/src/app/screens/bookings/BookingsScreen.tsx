@@ -7,11 +7,15 @@ import { classroomsApi, Classroom } from "../../../services/api/classrooms.api";
 import { formatTimeRange, formatMonthDay } from "../../../utils/datetime";
 import { UpcomingBookingCard } from "../../../components/UpcomingBookingCard";
 import { useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { BookingsStackParamList } from "../../navigation/BookingsStackNavigator";
 
 export function BookingsScreen() {
   const [loading, setLoading] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const navigation = useNavigation<NativeStackNavigationProp<BookingsStackParamList>>();
 
   const classroomCodeById = useMemo(() => {
     const map: Record<string, string> = {};
@@ -61,7 +65,10 @@ export function BookingsScreen() {
               title={classroomTitle}
               subtitle={subtitle}
               onPress={() => {
-                // siguiente paso: detalle de reserva
+                navigation.navigate("BookingDetail", {
+                  booking: item,
+                  classroomTitle,
+                });
               }}
             />
           );

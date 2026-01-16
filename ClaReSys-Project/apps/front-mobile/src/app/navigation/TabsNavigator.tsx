@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme/colors";
 import { HomeScreen } from "../screens/home/HomeScreen";
-import { BookingsScreen } from "../screens/bookings/BookingsScreen";
+import { BookingsStackNavigator } from "./BookingsStackNavigator";
 import { ProfileScreen } from "../screens/profile/ProfileScreen";
 
 type TabsParamList = {
@@ -45,7 +45,7 @@ export function TabsNavigator({ onPressCreate }: Props) {
       {/* Tab “dummy” para reservar espacio al FAB */}
       <Tab.Screen
         name="Bookings"
-        component={BookingsScreen}
+        component={BookingsStackNavigator}
         options={{
           tabBarIcon: ({ focused, size }) => (
             <Ionicons
