@@ -6,7 +6,26 @@ import os
 import json
 import httpx
 
-app = FastAPI(title="Booking Query Service (Redis)", version="1.0.0")
+ENV = os.getenv("ENV", "development").lower()
+ENABLE_DOCS = os.getenv("ENABLE_DOCS", "true").lower() == "true"
+
+if ENV == "production":
+    ENABLE_DOCS = False
+
+openapi_tags = [
+    {"name": "queries", "description": "Booking query endpoints.",},
+]
+app = FastAPI(
+    title="ClaReSys - Booking Query Service",
+    version="1.0.0",
+    description="Booking Read Microservice (CQRS): query bookings and related data.",
+    openapi_tags=openapi_tags,
+    docs_url="/docs" if ENABLE_DOCS else None,
+    redoc_url="/redoc" if ENABLE_DOCS else None,
+    openapi_url="/openapi.json" if ENABLE_DOCS else None,
+    contact={"name": "ClaReSys Team"},
+    license_info={"name": "Internal Use"},
+)
 
 app.include_router(router, prefix="/api/v1/queries", tags=["queries"])
 
@@ -16,19 +35,14 @@ INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "")
 async def rehydrate_from_command():
     r = get_redis_client()
 
-    # 1) Limpieza mínima de índices (recomendado para evitar duplicados o basura)
-    # Borra sets de índices
     r.delete("bookings:all")
-    # Borra llaves booking:*
     for k in r.scan_iter(match="booking:*", count=500):
         r.delete(k)
-    # Si manejas índices por usuario/aula, puedes limpiar también:
     for k in r.scan_iter(match="user:*:bookings", count=500):
         r.delete(k)
     for k in r.scan_iter(match="classroom:*:bookings", count=500):
         r.delete(k)
 
-    # 2) Pull paginado desde command (por si hay muchas reservas)
     headers = {}
     if INTERNAL_API_KEY:
         headers["X-Internal-API-Key"] = INTERNAL_API_KEY
@@ -72,18 +86,16 @@ async def rehydrate_from_command():
 
 @app.on_event("startup")
 async def startup_event():
-    # 1) Rehydrate primero (si falla, sigue levantando para no tumbar servicio)
     try:
         await rehydrate_from_command()
     except Exception as e:
         print(f"[booking-query] Rehydrate falló: {e}")
 
-    # 2) Luego arranca el consumer para mantener el read-model al día
     consumer = EventConsumer()
     consumer.start()
     print("[booking-query] Consumidor RabbitMQ activo")
 
 
-@app.get("/health")
+@app.get("/health", tags=["health"])
 def health_check():
-    return {"status": "ok", "service": "booking-query"}
+    return {"status": "ok", "service": "booking-query", "env": ENV, "docs": ENABLE_DOCS}

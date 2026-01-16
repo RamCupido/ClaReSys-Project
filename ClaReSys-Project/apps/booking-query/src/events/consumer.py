@@ -14,7 +14,7 @@ class EventConsumer(threading.Thread):
         self.daemon = True
 
     def run(self):
-        """This method runs in a separate thread so as not to block FastAPI"""
+        # This method runs in a separate thread so as not to block FastAPI
         attempt = 0
         while True:
             try:

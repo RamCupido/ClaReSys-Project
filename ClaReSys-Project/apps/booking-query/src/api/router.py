@@ -20,7 +20,15 @@ class BookingView(BaseModel):
 def redis_dep() -> Redis:
     return get_redis_client()
 
-@router.get("/bookings/{booking_id}",response_model=BookingView,status_code=status.HTTP_200_OK)
+@router.get("/bookings/{booking_id}",
+            response_model=BookingView,
+            status_code=status.HTTP_200_OK,
+            summary="Get booking by ID",
+            description="Retrieve a booking's details from Redis cache by its ID.",
+            responses={
+                200: {"description": "Booking found and returned."},
+                404: {"description": "Booking not found"},
+                500: {"description": "Internal server error"},})
 def get_booking(booking_id: UUID, redis_client: Redis = Depends(redis_dep)):
     data = redis_client.get(f"booking:{booking_id}")
 
@@ -45,7 +53,14 @@ class BookingListResponse(BaseModel):
     items: list[BookingView]
 
 
-@router.get("/bookings", response_model=BookingListResponse, status_code=status.HTTP_200_OK)
+@router.get("/bookings",
+            response_model=BookingListResponse,
+            status_code=status.HTTP_200_OK,
+            summary="List bookings",
+            description="List bookings from Redis cache with optional filtering.",
+            responses={
+                200: {"description": "List of bookings returned."},
+            })
 def list_bookings(
     user_id: UUID | None = None,
     classroom_id: UUID | None = None,
@@ -54,15 +69,6 @@ def list_bookings(
     offset: int = 0,
     redis_client: Redis = Depends(redis_dep),
 ):
-    """Reservation list from Redis.
-
-    Strategy:
-    - If user_id is provided: use set user:{user_id}:bookings
-    - If classroom_id is provided: use set classroom:{classroom_id}:bookings
-    - If neither is provided: use set bookings:all
-
-    Supports basic status filtering and offset/limit pagination.
-    """
 
     # Guardrails
     limit = max(1, min(limit, 200))
