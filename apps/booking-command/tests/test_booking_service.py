@@ -231,7 +231,7 @@ def test_cancel_booking_not_found():
     db._current_id_lookup = uuid.uuid4()
 
     with pytest.raises(BookingNotFoundError):
-        service.cancel_booking(booking_id=db._current_id_lookup, requester_user_id=uuid.uuid4())
+        service.cancel_booking(booking_id=db._current_id_lookup, requester_user_id=uuid.uuid4(), requester_role="ADMIN")
 
 
 def test_cancel_booking_forbidden():
@@ -241,7 +241,6 @@ def test_cancel_booking_forbidden():
     other_id = uuid.uuid4()
     classroom_id = uuid.uuid4()
 
-    # CORRECCIÓN: Se agrega 'subject' al crear el objeto manualmente
     b = Booking(
         user_id=owner_id,
         classroom_id=classroom_id,
@@ -256,7 +255,7 @@ def test_cancel_booking_forbidden():
     db._current_id_lookup = b.id
 
     with pytest.raises(BookingForbiddenError):
-        service.cancel_booking(booking_id=b.id, requester_user_id=other_id)
+        service.cancel_booking(booking_id=b.id, requester_user_id=other_id, requester_role="ADMIN")
 
 
 def test_cancel_booking_success_publishes_event_and_is_idempotent():
@@ -279,7 +278,7 @@ def test_cancel_booking_success_publishes_event_and_is_idempotent():
     db._current_id_lookup = b.id
     
     # Primera cancelación
-    cancelled = service.cancel_booking(booking_id=b.id, requester_user_id=owner_id)
+    cancelled = service.cancel_booking(booking_id=b.id, requester_user_id=owner_id, requester_role="ADMIN")
 
     assert cancelled.status == "CANCELLED"
     assert len(service.event_bus.published) == 1
@@ -287,7 +286,7 @@ def test_cancel_booking_success_publishes_event_and_is_idempotent():
 
     # Idempotencia: segunda cancelación no explota ni publica de nuevo
     db._current_id_lookup = b.id
-    cancelled2 = service.cancel_booking(booking_id=b.id, requester_user_id=owner_id)
+    cancelled2 = service.cancel_booking(booking_id=b.id, requester_user_id=owner_id, requester_role="ADMIN")
 
     assert cancelled2.status == "CANCELLED"
     assert len(service.event_bus.published) == 1  # No aumenta
