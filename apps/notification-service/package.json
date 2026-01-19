@@ -1,0 +1,11 @@
+{
+  "name": "@claresys/notification-service",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up notification-service",
+    "build": "docker compose build notification-service",
+    "test": "docker compose run --rm notification-service pytest -q",
+    "lint": "docker compose run --rm notification-service ruff check .",
+    "typecheck": "docker compose run --rm notification-service mypy ."
+  }
+}

@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  api-gateway:
+    image: augusto573/claresys-api-gateway:${IMAGE_TAG:-latest}
+    ports:
+      - "80:80"
+    networks: [claresys_net]
+
+  auth-service:
+    image: augusto573/claresys-auth-service:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  booking-command:
+    image: augusto573/claresys-booking-command:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  booking-query:
+    image: augusto573/claresys-booking-query:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  classroom-service:
+    image: augusto573/claresys-classroom-service:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  user-service:
+    image: augusto573/claresys-user-service:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  timetable-engine:
+    image: augusto573/claresys-timetable-engine:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  notification-service:
+    image: augusto573/claresys-notification-service:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  reporting-service:
+    image: augusto573/claresys-reporting-service:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  maintenance-service:
+    image: augusto573/claresys-maintenance-service:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+  auditlog-service:
+    image: augusto573/claresys-auditlog-service:${IMAGE_TAG:-latest}
+    env_file: .env
+    networks: [claresys_net]
+
+networks:
+  claresys_net:
+    driver: bridge
