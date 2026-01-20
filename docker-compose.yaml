@@ -192,13 +192,12 @@ services:
     env_file:
       - .env
     environment:
+      USER_SEREVICE_URL: ${USER_SERVICE_BASE_URL}
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       SMTP_HOST: ${SMTP_HOST}
     depends_on:
       rabbitmq:
         condition: service_healthy
-      mailhog:
-        condition: service_started
 
   # --- PostgreSQL Database Service for User Service ---
   users-db:
