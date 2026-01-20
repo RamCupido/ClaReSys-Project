@@ -5,7 +5,6 @@ import sys
 import time
 from email_sender import EmailSender
 
-# Configuration
 RABBIT_HOST = os.getenv("RABBITMQ_HOST", "rabbitmq")
 RABBIT_PORT = int(os.getenv("RABBITMQ_PORT", 5672))
 
@@ -47,16 +46,13 @@ def main():
     print("Notification Service esperando eventos...")
 
     def callback(ch, method, properties, body):
-        handle_message(body, email_sender)
-        event_data = json.loads(body)
-        print(f"Evento recibido: {event_data}")
-        
-        # Extarct booking details
-        booking_id = event_data.get("booking_id")
-        email = event_data.get("email", "usuario@ejemplo.com")
-        status = event_data.get("status")
-        
-        email_sender.send_booking_confirmation(email, booking_id, status)
+        ok = handle_message(body, email_sender)
+        try:
+            event_data = json.loads(body.decode("utf-8"))
+        except Exception:
+            event_data = {"raw": body}
+
+        print(f"Evento recibido: {event_data} | email_sent={ok}")
 
     channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
     channel.start_consuming()

@@ -73,3 +73,6 @@ crash.*.log
 *.tfvars.secret.json
 .terraformrc
 terraform.rc
+
+# Restored backups
+restore/

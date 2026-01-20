@@ -183,14 +183,6 @@ services:
       timeout: 5s
       retries: 10
 
-  # --- INFRASTRUCTURE: EMAIL (Simulation) ---
-  mailhog:
-    image: mailhog/mailhog
-    container_name: mailhog_container
-    ports:
-      - "1025:1025" # Port SMTP
-      - "8025:8025" # Web UI
-
   # Notification Service
   notification-service:
     build:
