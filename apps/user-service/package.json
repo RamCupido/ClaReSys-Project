@@ -1,0 +1,11 @@
+{
+  "name": "@claresys/user-service",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up user-service",
+    "build": "docker compose build user-service",
+    "test": "docker compose run --rm user-service pytest -q",
+    "lint": "docker compose run --rm user-service ruff check .",
+    "typecheck": "docker compose run --rm user-service mypy ."
+  }
+}

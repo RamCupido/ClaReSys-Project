@@ -1,0 +1,11 @@
+{
+  "name": "@claresys/timetable-engine",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up timetable-engine",
+    "build": "docker compose build timetable-engine",
+    "test": "docker compose run --rm timetable-engine pytest -q",
+    "lint": "docker compose run --rm timetable-engine ruff check .",
+    "typecheck": "docker compose run --rm timetable-engine mypy ."
+  }
+}

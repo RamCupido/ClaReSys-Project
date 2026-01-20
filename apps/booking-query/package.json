@@ -1,0 +1,11 @@
+{   
+  "name": "@claresys/booking-query",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up booking-query",
+    "build": "docker compose build booking-query",
+    "test": "docker compose run --rm booking-query pytest -q",
+    "lint": "docker compose run --rm booking-query ruff check .",
+    "typecheck": "docker compose run --rm booking-query mypy ."
+  }
+}

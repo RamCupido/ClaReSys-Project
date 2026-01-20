@@ -1,0 +1,10 @@
+{
+  "name": "@claresys/api-gateway",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose up api-gateway",
+    "build": "docker compose build api-gateway",
+    "test": "echo \"No tests for api-gateway\"",
+    "lint": "echo \"No lint for api-gateway\""
+  }
+}

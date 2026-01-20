@@ -1,0 +1,448 @@
+services:
+  # --- PostgreSQL Database Service for classroom-service ---
+  classroom-db:
+    image: postgres:15-alpine
+    container_name: classroom_db_container
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${CLASSROOM_DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - classroom_data:/var/lib/postgresql/data
+      - ./apps/classroom-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${CLASSROOM_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Classroom Service
+  classroom-service:
+    build:
+      context: .
+      dockerfile: apps/classroom-service/Dockerfile
+    container_name: classroom_service_container
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${CLASSROOM_DB_HOST}:${CLASSROOM_DB_PORT}/${CLASSROOM_DB_NAME}"
+    # wait until the database is healthy before starting
+    depends_on:
+      classroom-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ./apps/classroom-service/src:/app/src
+      - ./packages/common/src:/app/packages/common/src
+
+  # Timetable Engine Service
+  timetable-engine:
+    build:
+      context: ./apps/timetable-engine
+      dockerfile: Dockerfile
+    container_name: timetable_engine_container
+    ports:
+      - "50051:50051"
+    environment:
+      PYTHONUNBUFFERED: 1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1', 50051)); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # --- PostgreSQL Database Service for booking-command ---
+  booking-db:
+    image: postgres:15-alpine
+    container_name: booking_db_container
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${BOOKING_DB_NAME}
+    ports:
+      - "5433:5432"
+    volumes:
+      - booking_data:/var/lib/postgresql/data
+      - ./apps/booking-command/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${BOOKING_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # --- RabbitMQ Service ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq_container
+    restart: always
+    ports:
+      - "5672:5672"   # Port for RabbitMQ messaging
+      - "15672:15672" # Port for RabbitMQ management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Booking Command Service
+  booking-command:
+    build:
+      context: .
+      dockerfile: apps/booking-command/Dockerfile
+    container_name: booking_command_container
+    env_file:
+      - .env
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${BOOKING_DB_HOST}:${BOOKING_DB_PORT}/${BOOKING_DB_NAME}"
+      CLASSROOM_SERVICE_URL: "http://${CLASSROOM_SERVICE_HOST}:${CLASSROOM_SERVICE_PORT}"
+      TIMETABLE_SERVICE_HOST: ${TIMETABLE_SERVICE_HOST}
+      TIMETABLE_SERVICE_PORT: ${TIMETABLE_SERVICE_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+    depends_on:
+      booking-db:
+        condition: service_healthy
+      classroom-service:
+        condition: service_started
+      timetable-engine:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - ./apps/booking-command/src:/app/src
+      - ./apps/timetable-engine/protos:/app/protos
+
+  # --- Redis Service ---
+  redis:
+    image: redis:7-alpine
+    container_name: redis_container
+    restart: always
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Booking Query Service
+  booking-query:
+    build:
+      context: .
+      dockerfile: apps/booking-query/Dockerfile
+    container_name: booking_query_container
+    env_file:
+      - .env
+    ports:
+      - "8002:8000"
+    environment:
+      - BOOKING_COMMAND_URL=http://booking-command:8000
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    depends_on:
+      booking-command:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # --- INFRASTRUCTURE: EMAIL (Simulation) ---
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog_container
+    ports:
+      - "1025:1025" # Port SMTP
+      - "8025:8025" # Web UI
+
+  # Notification Service
+  notification-service:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+    container_name: notification_service_container
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      SMTP_HOST: ${SMTP_HOST}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+
+  # --- PostgreSQL Database Service for User Service ---
+  users-db:
+    image: postgres:15-alpine
+    container_name: users_db_container
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${USERS_DB_NAME}
+    volumes:
+      - users_data:/var/lib/postgresql/data
+      - ./apps/user-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${USERS_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/Dockerfile
+    container_name: user_service_container
+    env_file:
+      - .env
+    ports:
+      - "8004:8000"
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${USERS_DB_HOST}:${USERS_DB_PORT}/${USERS_DB_NAME}"
+    depends_on:
+      users-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    container_name: auth_service_container
+    env_file:
+      - .env
+    ports:
+      - "8003:8000"
+    environment:
+      USER_SERVICE_HOST: user-service
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+    depends_on:
+      user-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      
+  # --- MongoDB Service for Audit Log Service ---
+  mongodb:
+    image: mongo:7
+    container_name: mongodb_container
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka Service
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka_container
+    restart: always
+    ports:
+      - "9092:9092"
+    environment:
+      # --- REQUIRED for KRaft ---
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"  # string base64-like, fixed for dev
+
+      # --- KRaft mode ---
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_NODE_ID: "1"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+
+      # --- Listeners ---
+      KAFKA_LISTENERS: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+
+      # --- Single-node dev settings ---
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+
+  # Audit Log Service
+  audit-log-service:
+    build:
+      context: .
+      dockerfile: apps/audit-log-service/Dockerfile
+    container_name: audit_log_service_container
+    env_file:
+      - .env
+    ports:
+      - "8010:8000"
+    environment:
+      MONGO_URI: "mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}"
+      MONGO_DB: ${MONGO_DB}
+      MONGO_COLLECTION: "audit_logs"
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_HOST}:${KAFKA_PORT}"
+      KAFKA_TOPIC_AUDIT: "audit.logs"
+      KAFKA_CONSUMER_GROUP: "audit-log-service"
+      KAFKA_ENABLE_CONSUMER: "true"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Maintenance Service      
+  maintenance-service:
+    build:
+      context: .
+      dockerfile: apps/maintenance-service/Dockerfile
+    container_name: maintenance_service_container
+    env_file:
+      - .env
+    environment:
+      MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017
+      MONGO_DB: ${MONGO_DB}
+      MONGO_COLLECTION: maintenance_tickets
+
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_EXCHANGE: domain.events
+    depends_on:
+      - mongodb
+      - rabbitmq
+    ports:
+      - "8011:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  
+  # Reporting Service
+  reporting-service:
+    build:
+      context: .
+      dockerfile: apps/reporting-service/Dockerfile
+    container_name: reporting_service_container
+    env_file:
+      - .env
+    environment:
+      BOOKING_QUERY_BASE_URL: http://booking-query:8000
+      CLASSROOM_SERVICE_BASE_URL: http://classroom-service:8000
+      MAINTENANCE_SERVICE_BASE_URL: http://maintenance-service:8000
+      REQUEST_TIMEOUT_SECONDS: "10"
+    depends_on:
+      - booking-query
+      - classroom-service
+      - maintenance-service
+    ports:
+      - "8012:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # --- API Gateway Service ---
+  api-gateway:
+    build:
+      context: ./apps/api-gateway
+      dockerfile: Dockerfile
+    container_name: api_gateway_container
+    ports:
+      - "8080:80"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      booking-command:
+        condition: service_healthy
+      booking-query:
+        condition: service_healthy
+      classroom-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      audit-log-service:
+        condition: service_healthy
+      reporting-service:
+        condition: service_healthy
+
+volumes:
+  classroom_data:
+  booking_data:
+  rabbitmq_data:
+  redis_data:
+  users_data:
+  mongo_data:
+  kafka_data:

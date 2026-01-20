@@ -1,0 +1,153 @@
+import React, { useMemo, useState } from "react";
+import { View, Text, FlatList, RefreshControl, StyleSheet } from "react-native";
+import { colors } from "../../../theme/colors";
+import { spacing } from "../../../theme/spacing";
+import { bookingsApi, Booking } from "../../../services/api/bookings.api";
+import { classroomsApi, Classroom } from "../../../services/api/classrooms.api";
+import { formatTimeRange, formatMonthDay, isFuture, isPast, sortByStartAsc } from "../../../utils/datetime";
+import { UpcomingBookingCard } from "../../../components/UpcomingBookingCard";
+import { useFocusEffect } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { BookingsStackParamList } from "../../navigation/BookingsStackNavigator";
+import { SegmentedFilter } from "../../../components/SegmentedFilter";
+
+export function BookingsScreen() {
+  const [loading, setLoading] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const navigation = useNavigation<NativeStackNavigationProp<BookingsStackParamList>>();
+
+  const [filter, setFilter] = useState<FilterKey>("UPCOMING");
+
+  const filterOptions = [
+    { key: "UPCOMING" as const, label: "Próximas" },
+    { key: "PAST" as const, label: "Pasadas" },
+    { key: "CANCELLED" as const, label: "Canceladas" },
+  ];
+
+  const filteredBookings = useMemo(() => {
+    const confirmed = bookings.filter((b) => b.status !== "CANCELLED");
+    const cancelled = bookings.filter((b) => b.status === "CANCELLED");
+
+    if (filter === "CANCELLED") {
+      return cancelled.sort((a, b) => sortByStartAsc(b.start_time, a.start_time));
+    }
+
+    if (filter === "PAST") {
+      return confirmed
+        .filter((b) => isPast(b.end_time))
+        .sort((a, b) => sortByStartAsc(b.start_time, a.start_time));
+    }
+
+    // UPCOMING
+    return confirmed
+      .filter((b) => isFuture(b.start_time))
+      .sort((a, b) => sortByStartAsc(a.start_time, b.start_time));
+  }, [bookings, filter]);
+
+  const emptyTitle = useMemo(() => {
+    if (filter === "UPCOMING") return "No tienes reservas próximas";
+    if (filter === "PAST") return "No tienes reservas pasadas";
+    return "No tienes reservas canceladas";
+  }, [filter]);
+
+  const emptySub = useMemo(() => {
+    if (filter === "UPCOMING") return "Crea una desde el botón +.";
+    if (filter === "PAST") return "Tus reservas anteriores aparecerán aquí.";
+    return "Las cancelaciones aparecerán aquí.";
+  }, [filter]);
+
+  const classroomCodeById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of classrooms) map[c.id] = c.code;
+    return map;
+  }, [classrooms]);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const [cls, bks] = await Promise.all([
+        classroomsApi.listOperational(),
+        bookingsApi.list(),
+      ]);
+      setClassrooms(cls);
+      setBookings(bks);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useFocusEffect(
+    React.useCallback(() => {
+      load();
+    }, [])
+  );
+
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.title}>Mis Reservas</Text>
+
+      <SegmentedFilter value={filter} options={filterOptions} onChange={setFilter} />
+
+      <FlatList
+        data={filteredBookings}
+        keyExtractor={(b) => b.booking_id}
+        contentContainerStyle={{ padding: spacing.md, gap: 12, paddingBottom: 120 }}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+        renderItem={({ item }) => {
+          const { month, day } = formatMonthDay(item.start_time);
+          const classroomTitle = classroomCodeById[item.classroom_id] ?? "Aula";
+          const time = formatTimeRange(item.start_time, item.end_time);
+          const subtitle = item.subject ? `${item.subject} · ${time}` : time;
+          const isCancelled = item.status === "CANCELLED";
+          const subtitleFinal = isCancelled ? `CANCELADA · ${subtitle}` : subtitle;
+
+          return (
+            <UpcomingBookingCard
+              month={month}
+              day={day}
+              title={classroomTitle}
+              subtitle={subtitleFinal}
+              onPress={() => {
+                navigation.navigate("BookingDetail", {
+                  booking: item,
+                  classroomTitle,
+                });
+              }}
+            />
+          );
+        }}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>{emptyTitle}</Text>
+            <Text style={styles.emptySub}>{emptySub}</Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
+
+type FilterKey = "UPCOMING" | "PAST" | "CANCELLED";
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background, paddingTop: spacing.xl },
+  title: {
+    paddingHorizontal: spacing.md,
+    fontSize: 22,
+    fontWeight: "900",
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  empty: {
+    marginTop: spacing.xl,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  emptyTitle: { fontSize: 15, fontWeight: "800", color: colors.text },
+  emptySub: { marginTop: 6, fontSize: 13, fontWeight: "600", color: colors.muted },
+});
