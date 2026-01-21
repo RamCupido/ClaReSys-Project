@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { View, Text, FlatList, RefreshControl, StyleSheet } from "react-native";
 import { colors } from "../../../theme/colors";
 import { spacing } from "../../../theme/spacing";
@@ -11,12 +11,16 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BookingsStackParamList } from "../../navigation/BookingsStackNavigator";
 import { SegmentedFilter } from "../../../components/SegmentedFilter";
+import { useAuthStore } from "../../../store/auth.store";
+import { useMqttTopic } from "../../../hooks/useMqttTopic";
 
 export function BookingsScreen() {
   const [loading, setLoading] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const navigation = useNavigation<NativeStackNavigationProp<BookingsStackParamList>>();
+  const userId = useAuthStore((s) => s.userId);
+
 
   const [filter, setFilter] = useState<FilterKey>("UPCOMING");
 
@@ -64,7 +68,7 @@ export function BookingsScreen() {
     return map;
   }, [classrooms]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [cls, bks] = await Promise.all([
@@ -76,13 +80,22 @@ export function BookingsScreen() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
       load();
-    }, [])
+    }, [load])
   );
+
+  useMqttTopic(userId ? `claresys/users/${userId}/notifications` : null, (msg) => {
+    const ev = msg?.event as string | undefined;
+
+    if (ev === "booking.created" || ev === "booking.canceled") {
+      load();
+    }
+  });
+
 
   return (
     <View style={styles.screen}>
