@@ -1,0 +1,16 @@
+{
+  "name": "desktop-admin",
+  "version": "1.0.0",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "dev": "electronmon .",
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electronmon": "^2.0.3"
+  },
+  "dependencies": {
+    "electron": "^32.0.0"
+  }
+}
