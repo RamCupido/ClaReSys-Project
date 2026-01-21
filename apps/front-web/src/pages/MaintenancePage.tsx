@@ -187,7 +187,7 @@ export default function MaintenancePage() {
               </Select>
             </div>
             <div className="md:col-span-1 flex items-end">
-              <Button onClick={onCreate} disabled={!classroomId || !description.trim()}>Crear</Button>
+              <Button onClick={onCreate} disabled={!classroomId || !description.trim()}>Crear Ticket</Button>
             </div>
           </div>
 
@@ -205,14 +205,14 @@ export default function MaintenancePage() {
         <CardBody className="space-y-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Status</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Estado</label>
               <Select value={statusFilter} onChange={(e) => { setOffset(0); setStatusFilter(e.target.value); }}>
                 <option value="">(todos)</option>
                 {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Priority</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Prioridad</label>
               <Select value={priorityFilter} onChange={(e) => { setOffset(0); setPriorityFilter(e.target.value); }}>
                 <option value="">(todas)</option>
                 {priorities.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -226,7 +226,7 @@ export default function MaintenancePage() {
               </Select>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Limit</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Limite</label>
               <Input type="number" min={1} max={200} value={limit} onChange={(e) => { setOffset(0); setLimit(Number(e.target.value)); }} />
             </div>
           </div>
@@ -245,9 +245,9 @@ export default function MaintenancePage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-slate-600">
-                  <th className="py-2">ticket_id</th>
+                  <th className="py-2">Id ticket</th>
                   <th className="py-2">aula</th>
-                  <th className="py-2">pprioridad</th>
+                  <th className="py-2">prioridad</th>
                   <th className="py-2">status</th>
                   <th className="py-2">tipo</th>
                   <th className="py-2">descripcion</th>
@@ -304,13 +304,13 @@ export default function MaintenancePage() {
                 </Select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Priority</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Prioridad</label>
                 <Select value={editPriority} onChange={(e) => setEditPriority(e.target.value)}>
                   {priorities.map((p) => <option key={p} value={p}>{p}</option>)}
                 </Select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
+                <label className="mb-1 block text-sm font-medium text-slate-700">Tipo</label>
                 <Select value={editType} onChange={(e) => setEditType(e.target.value)}>
                   {types.map((t) => <option key={t} value={t}>{t}</option>)}
                 </Select>

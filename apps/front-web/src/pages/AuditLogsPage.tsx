@@ -88,38 +88,38 @@ export default function AuditLogsPage() {
         <CardBody className="space-y-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">From</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Desde</label>
               <Input type="datetime-local" value={fromLocal} onChange={(e) => { setOffset(0); setFromLocal(e.target.value); }} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">To</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Hasta</label>
               <Input type="datetime-local" value={toLocal} onChange={(e) => { setOffset(0); setToLocal(e.target.value); }} />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Service</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Servicio</label>
               <Input value={service} onChange={(e) => { setOffset(0); setService(e.target.value); }} placeholder="booking-command, maintenance-service..." />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">actor_user_id</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Usuario (ID)</label>
               <Input value={actorUserId} onChange={(e) => { setOffset(0); setActorUserId(e.target.value); }} placeholder="UUID" />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">action</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Accion</label>
               <Input value={action} onChange={(e) => { setOffset(0); setAction(e.target.value); }} placeholder="CREATE_BOOKING, UPDATE_TICKET..." />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">resource_id</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Recurso</label>
               <Input value={resourceId} onChange={(e) => { setOffset(0); setResourceId(e.target.value); }} placeholder="booking_id, ticket_id..." />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">correlation_id</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">ID Correlacion</label>
               <Input value={correlationId} onChange={(e) => { setOffset(0); setCorrelationId(e.target.value); }} placeholder="request id / correlation id" />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Limit</label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Limite</label>
               <Input type="number" min={1} max={200} value={limit} onChange={(e) => { setOffset(0); setLimit(Number(e.target.value)); }} />
             </div>
 
@@ -156,12 +156,12 @@ export default function AuditLogsPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-slate-600">
-                  <th className="py-2">timestamp</th>
-                  <th className="py-2">service</th>
-                  <th className="py-2">action</th>
-                  <th className="py-2">actor_user_id</th>
-                  <th className="py-2">resource_id</th>
-                  <th className="py-2">detalle</th>
+                  <th className="py-2">Fecha y hora</th>
+                  <th className="py-2">Servicio</th>
+                  <th className="py-2">Acccion</th>
+                  <th className="py-2">Usuario</th>
+                  <th className="py-2">Recurso</th>
+                  <th className="py-2">Detalle</th>
                 </tr>
               </thead>
               <tbody>

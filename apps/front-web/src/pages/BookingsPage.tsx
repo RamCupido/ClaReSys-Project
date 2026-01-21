@@ -165,7 +165,7 @@ export default function BookingsPage() {
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: 6 }}>Limit</label>
+            <label style={{ display: "block", marginBottom: 6 }}>Limite</label>
             <input
               type="number"
               min={1}
@@ -204,13 +204,13 @@ export default function BookingsPage() {
         <table width="100%" cellPadding={8} style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th align="left">booking_id</th>
-              <th align="left">aula (code)</th>
-              <th align="left">usuario (email)</th>
-              <th align="left">status</th>
-              <th align="left">start_time</th>
-              <th align="left">end_time</th>
-              <th align="left">subject</th>
+              <th align="left">ID reserva</th>
+              <th align="left">Aula (code)</th>
+              <th align="left">Usuario (email)</th>
+              <th align="left">Estado</th>
+              <th align="left">Inicio</th>
+              <th align="left">Fin</th>
+              <th align="left">Motivo</th>
             </tr>
           </thead>
           <tbody>
