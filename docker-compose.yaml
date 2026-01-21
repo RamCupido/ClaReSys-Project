@@ -102,6 +102,44 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  emqx:
+    image: emqx/emqx:5.3.0
+    container_name: emqx_container
+    restart: always
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "18083:18083"
+    environment:
+      - EMQX_ALLOW_ANONYMOUS=true
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mqtt-bridge:
+    build:
+      context: ./apps/mqtt-bridge
+      dockerfile: Dockerfile
+    container_name: mqtt_bridge_container
+    restart: always
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_EXCHANGE: booking_events
+      RABBITMQ_QUEUE: mqtt.bridge
+      RABBITMQ_BINDING_KEYS: booking.*
+      MQTT_HOST: emqx
+      MQTT_PORT: 1883
+      MQTT_TOPIC_PREFIX: claresys
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
 
   # Booking Command Service
   booking-command:
