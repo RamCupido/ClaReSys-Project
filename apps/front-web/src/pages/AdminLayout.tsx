@@ -43,6 +43,8 @@ export default function AdminLayout() {
               <NavItem to="/admin/bookings" label="Reservas" exact/>
               <NavItem to="/admin/bookings/create" label="Crear Reserva" exact/>
               <NavItem to="/admin/reports" label="Reportes" exact/>
+              <NavItem to="/admin/maintenance" label="Mantenimiento" exact/>
+              <NavItem to="/admin/audit-logs" label="Logs Auditoria" exact/>
             </nav>
 
             <div className="mt-4">

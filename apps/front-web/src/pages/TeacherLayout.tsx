@@ -40,6 +40,7 @@ export default function TeacherLayout() {
             <nav className="space-y-1">
               <NavItem to="/teacher/bookings" label="Reservas" exact/>
               <NavItem to="/teacher/bookings/create" label="Crear Reserva" exact/>
+              <NavItem to="/teacher/maintenance" label="Mantenimieto" exact/>
             </nav>
 
             <div className="mt-4">

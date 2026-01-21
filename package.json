@@ -10,7 +10,8 @@
     "dev:backend": "docker compose up classroom-service timetable-engine booking-command booking-query notification-service user-service auth-service api-gateway audit-log-service maintenance-service reporting-service",
     "dev:web": "npm --workspace apps/front-web run dev",
     "dev:mobile": "npm --workspace apps/front-mobile run dev",
-    "dev": "npm run dev:infra && concurrently -n BACKEND,WEB \"npm run dev:backend\" \"npm run dev:web\"",
+    "dev": "npm run dev:infra && concurrently -n BACKEND,WEB,MOBILE \"npm run dev:backend\" \"npm run dev:web\"",
+    "dev:all": "npm run dev:infra && concurrently -n BACKEND,WEB,MOBILE \"npm run dev:backend\" \"npm run dev:web\" \"npm run dev:mobile\"",
 
     "build": "turbo run build",
     "test": "turbo run test",
