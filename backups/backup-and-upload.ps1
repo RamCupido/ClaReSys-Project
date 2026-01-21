@@ -75,18 +75,24 @@ if ($env:MONGO_USER -and $env:MONGO_PASSWORD) {
 }
 
 # ============================
-# UPLOAD TO REMOTE SERVER
+# SUBIR AL SERVIDOR ON-PREMISE (QA)
 # ============================
+
 $REMOTE_USER = "distribuida"
 $REMOTE_HOST = "server.distribuidauce.org"
-$REMOTE_PATH = "/home/distribuida/Documents/distribuida1/Ramses_Riofrio/qa"
-$SSH_PROXY = "cloudflared access ssh --hostname server.distribuidauce.org"
+$REMOTE_PATH = "~/Documents/distribuida1/Ramses_Riofrio/qa"
+$SSH_PROXY   = "cloudflared access ssh --hostname server.distribuidauce.org"
+
+Write-Host "☁️ Asegurando estructura remota..."
+ssh -o "ProxyCommand=$SSH_PROXY" `
+  "${REMOTE_USER}@${REMOTE_HOST}" `
+  "mkdir -p ~/Documents/distribuida1/Ramses_Riofrio/qa/postgres/{booking_db,classroom_db,users_db} ~/Documents/distribuida1/Ramses_Riofrio/qa/mongo"
 
 Write-Host "☁️ Subiendo backups al servidor..."
-
 scp -r `
   -o "ProxyCommand=$SSH_PROXY" `
-  "$BACKUP_DIR\*" `
+  "$BACKUP_DIR\postgres" `
+  "$BACKUP_DIR\mongo" `
   "${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_PATH}"
 
-Write-Host "🎉 Backup y subida completados correctamente"
+Write-Host "✅ Upload completado"
