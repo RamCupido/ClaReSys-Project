@@ -5,3 +5,4 @@ pika
 pydantic
 pydantic-settings
 httpx
+kafka-python

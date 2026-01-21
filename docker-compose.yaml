@@ -33,9 +33,12 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${CLASSROOM_DB_HOST}:${CLASSROOM_DB_PORT}/${CLASSROOM_DB_NAME}"
-    # wait until the database is healthy before starting
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       classroom-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
@@ -117,6 +120,8 @@ services:
       TIMETABLE_SERVICE_PORT: ${TIMETABLE_SERVICE_PORT}
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_PORT: ${RABBITMQ_PORT}
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       booking-db:
         condition: service_healthy
@@ -125,6 +130,8 @@ services:
       timetable-engine:
         condition: service_started
       rabbitmq:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
@@ -162,20 +169,24 @@ services:
     ports:
       - "8002:8000"
     environment:
-      - BOOKING_COMMAND_URL=http://booking-command:8000
-      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      BOOKING_COMMAND_URL: http://booking-command:8000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       booking-command:
         condition: service_healthy
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
@@ -230,8 +241,12 @@ services:
       - "8004:8000"
     environment:
       DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${USERS_DB_HOST}:${USERS_DB_PORT}/${USERS_DB_NAME}"
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       users-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -253,8 +268,12 @@ services:
       USER_SERVICE_HOST: user-service
       SECRET_KEY: ${SECRET_KEY}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       user-service:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]

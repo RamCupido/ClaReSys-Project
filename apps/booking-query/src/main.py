@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from src.api.router import router
 from src.events.consumer import EventConsumer
 from src.infrastructure.redis_client import get_redis_client
+from src.middlewares.audit_middleware import audit_middleware
 import os
 import json
 import httpx
@@ -15,6 +16,7 @@ if ENV == "production":
 openapi_tags = [
     {"name": "queries", "description": "Booking query endpoints.",},
 ]
+
 app = FastAPI(
     title="ClaReSys - Booking Query Service",
     version="1.0.0",
@@ -26,6 +28,8 @@ app = FastAPI(
     contact={"name": "ClaReSys Team"},
     license_info={"name": "Internal Use"},
 )
+
+app.middleware("http")(audit_middleware)
 
 app.include_router(router, prefix="/api/v1/queries", tags=["queries"])
 

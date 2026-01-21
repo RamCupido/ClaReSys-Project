@@ -1,6 +1,7 @@
 import os
 from fastapi import FastAPI
 from src.api.router import router
+from src.middlewares.audit_middleware import audit_middleware
 
 ENV = os.getenv("ENV", "development").lower()
 ENABLE_DOCS = os.getenv("ENABLE_DOCS", "true").lower() == "true"
@@ -25,6 +26,8 @@ app = FastAPI(
     contact={"name": "ClaReSys Team"},
     license_info={"name": "Internal Use"},
 )
+
+app.middleware("http")(audit_middleware)
 
 app.include_router(router, prefix="/api/v1/bookings", tags=["bookings"])
 
