@@ -94,7 +94,7 @@ Each service is independently deployable and communicates using REST APIs, messa
 ## Repository Structure
 
 This project uses a **monorepo structure** managed with Turborepo:
-
+```
 apps/
 ├─ api-gateway
 ├─ auth-service
@@ -114,7 +114,7 @@ apps/
 packages/
 ├─ shared
 └─ config
-
+```
 ---
 
 ## Environment Configuration
