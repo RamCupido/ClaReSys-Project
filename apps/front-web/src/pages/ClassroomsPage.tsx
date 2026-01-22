@@ -55,7 +55,6 @@ export default function ClassroomsPage() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlyOperational]);
 
   const onCreate = async () => {
@@ -101,7 +100,6 @@ export default function ClassroomsPage() {
     setErr(null);
     setMsg(null);
 
-    // Payload parcial: solo campos editables (PATCH)
     const payload: any = {
       code: editCode.trim(),
       capacity: editCapacity,

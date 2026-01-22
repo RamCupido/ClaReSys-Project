@@ -49,7 +49,6 @@ def create_ticket(
 
     col.insert_one(doc)
 
-    # Evento created
     pub.publish(
         "maintenance.ticket.created",
         build_event("maintenance-service", "maintenance.ticket.created", {
@@ -60,7 +59,6 @@ def create_ticket(
         }),
     )
 
-    # Bloqueo de aula si CRITICAL
     if _should_block(payload.priority, "OPEN"):
         pub.publish(
             "classroom.blocked_by_maintenance",
@@ -72,7 +70,6 @@ def create_ticket(
         )
 
     pub.close()
-    # re-lectura para incluir _id
     created = col.find_one({"ticket_id": ticket_id})
     return MaintenanceTicketOut(**oid_to_str(created))
 
@@ -119,7 +116,6 @@ def update_ticket(
     now = datetime.now(timezone.utc)
     update = {"updated_at": now}
 
-    # aplicar campos
     if patch.assigned_to_user_id is not None:
         update["assigned_to_user_id"] = patch.assigned_to_user_id
     if patch.type is not None:
@@ -135,7 +131,6 @@ def update_ticket(
         if patch.status == "CANCELLED":
             update["resolved_at"] = None
 
-    # guardamos valores previos para regla de bloqueo
     prev_priority = doc["priority"]
     prev_status = doc["status"]
 
@@ -145,7 +140,6 @@ def update_ticket(
     new_priority = new_doc["priority"]
     new_status = new_doc["status"]
 
-    # Evento updated
     pub.publish(
         "maintenance.ticket.updated",
         build_event("maintenance-service", "maintenance.ticket.updated", {
@@ -156,7 +150,6 @@ def update_ticket(
         }),
     )
 
-    # Eventos terminales
     if prev_status != "RESOLVED" and new_status == "RESOLVED":
         pub.publish(
             "maintenance.ticket.resolved",
@@ -175,8 +168,6 @@ def update_ticket(
             }),
         )
 
-    # Reglas de bloqueo/desbloqueo para CRITICAL
-    # Caso: antes no bloqueaba y ahora sí
     if not _should_block(prev_priority, prev_status) and _should_block(new_priority, new_status):
         pub.publish(
             "classroom.blocked_by_maintenance",
@@ -187,7 +178,6 @@ def update_ticket(
             }),
         )
 
-    # Caso: antes bloqueaba y ahora ya no
     if _should_block(prev_priority, prev_status) and _should_unblock(new_priority, new_status):
         pub.publish(
             "classroom.unblocked_by_maintenance",

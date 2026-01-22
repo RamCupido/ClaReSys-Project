@@ -33,9 +33,12 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${CLASSROOM_DB_HOST}:${CLASSROOM_DB_PORT}/${CLASSROOM_DB_NAME}"
-    # wait until the database is healthy before starting
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       classroom-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
@@ -99,6 +102,44 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  emqx:
+    image: emqx/emqx:5.3.0
+    container_name: emqx_container
+    restart: always
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "18083:18083"
+    environment:
+      - EMQX_ALLOW_ANONYMOUS=true
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mqtt-bridge:
+    build:
+      context: ./apps/mqtt-bridge
+      dockerfile: Dockerfile
+    container_name: mqtt_bridge_container
+    restart: always
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_EXCHANGE: booking_events
+      RABBITMQ_QUEUE: mqtt.bridge
+      RABBITMQ_BINDING_KEYS: booking.*
+      MQTT_HOST: emqx
+      MQTT_PORT: 1883
+      MQTT_TOPIC_PREFIX: claresys
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
 
   # Booking Command Service
   booking-command:
@@ -117,6 +158,8 @@ services:
       TIMETABLE_SERVICE_PORT: ${TIMETABLE_SERVICE_PORT}
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       RABBITMQ_PORT: ${RABBITMQ_PORT}
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       booking-db:
         condition: service_healthy
@@ -125,6 +168,8 @@ services:
       timetable-engine:
         condition: service_started
       rabbitmq:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
@@ -162,14 +207,16 @@ services:
     ports:
       - "8002:8000"
     environment:
-      - BOOKING_COMMAND_URL=http://booking-command:8000
-      - INTERNAL_API_KEY=${INTERNAL_API_KEY}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      BOOKING_COMMAND_URL: http://booking-command:8000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       booking-command:
         condition: service_healthy
@@ -177,19 +224,13 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
       interval: 10s
       timeout: 5s
       retries: 10
-
-  # --- INFRASTRUCTURE: EMAIL (Simulation) ---
-  mailhog:
-    image: mailhog/mailhog
-    container_name: mailhog_container
-    ports:
-      - "1025:1025" # Port SMTP
-      - "8025:8025" # Web UI
 
   # Notification Service
   notification-service:
@@ -200,13 +241,12 @@ services:
     env_file:
       - .env
     environment:
+      USER_SEREVICE_URL: ${USER_SERVICE_BASE_URL}
       RABBITMQ_HOST: ${RABBITMQ_HOST}
       SMTP_HOST: ${SMTP_HOST}
     depends_on:
       rabbitmq:
         condition: service_healthy
-      mailhog:
-        condition: service_started
 
   # --- PostgreSQL Database Service for User Service ---
   users-db:
@@ -239,8 +279,12 @@ services:
       - "8004:8000"
     environment:
       DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@${USERS_DB_HOST}:${USERS_DB_PORT}/${USERS_DB_NAME}"
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       users-db:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -262,8 +306,12 @@ services:
       USER_SERVICE_HOST: user-service
       SECRET_KEY: ${SECRET_KEY}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
+      KAFKA_BOOTSTRAP_SERVERS: "${KAFKA_BOOTSTRAP_SERVERS}"
+      KAFKA_TOPIC_AUDIT: "${KAFKA_TOPIC_AUDIT}"
     depends_on:
       user-service:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]

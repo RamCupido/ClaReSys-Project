@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI
 from src.routes.auth import router
 from common.logger import get_logger
+from src.middlewares.audit_middleware import audit_middleware
 
 logger = get_logger("auth-service")
 
@@ -26,6 +27,8 @@ app = FastAPI(
     contact={"name": "ClaReSys Team"},
     license_info={"name": "Internal Use"},
 )
+
+app.middleware("http")(audit_middleware)
 
 app.include_router(router, prefix="/api/v1/auth", tags=["auth"])
 

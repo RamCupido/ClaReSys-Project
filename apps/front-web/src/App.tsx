@@ -13,6 +13,8 @@ import UsersPage from "./pages/UsersPage";
 import ReportsPage from "./pages/ReportsPage";
 import TeacherLayout from "./pages/TeacherLayout";
 import TeacherBookingsPage from "./pages/TeacherBookingsPage";
+import MaintenancePage from "./pages/MaintenancePage";
+import AuditLogsPage from "./pages/AuditLogsPage";
 
 export default function App() {
   return (
@@ -35,6 +37,8 @@ export default function App() {
             <Route path="bookings/create" element={<CreateBookingPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="reports" element={<ReportsPage />} />
+            <Route path="maintenance" element={<MaintenancePage />} />
+            <Route path="audit-logs" element={<AuditLogsPage />} />
           </Route>
 
           <Route
@@ -48,6 +52,7 @@ export default function App() {
             <Route index element={<Navigate to="bookings" replace />} />
             <Route path="bookings" element={<TeacherBookingsPage />} />
             <Route path="bookings/create" element={<CreateBookingPage />} />
+            <Route path="maintenance" element={<MaintenancePage />} />
           </Route>
 
 

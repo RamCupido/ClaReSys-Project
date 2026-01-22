@@ -1,135 +1,180 @@
-# Turborepo starter
+# ClaReSys – Classroom Reservation System
 
-This Turborepo starter is maintained by the Turborepo core team.
+## Overview
 
-## Using this example
+**ClaReSys (Classroom Reservation System)** is a distributed platform designed to manage and reserve academic classrooms efficiently.  
+The system is built using a **microservices architecture** and an **event-driven approach**, ensuring scalability, reliability, and maintainability.
 
-Run the following command:
+This project was developed as a **university academic project**, applying modern software engineering, distributed systems, and DevOps best practices.
+
+---
+
+## Objectives
+
+- Centralize classroom and reservation management
+- Prevent scheduling conflicts through automated validation
+- Provide real-time notifications and system auditing
+- Enable administrative control and monitoring
+- Support scalability through microservices and asynchronous communication
+
+---
+
+## User Roles
+
+### Administrator
+- Classroom management
+- User management
+- Reservation management
+- Audit log visualization
+- Maintenance ticket management
+
+### Teacher
+- Classroom reservations
+- Reservation cancellations
+- Class and schedule visualization
+
+---
+
+## System Architecture
+
+ClaReSys follows a **microservices-based architecture** combined with:
+
+- Event-Driven Architecture
+- CQRS (Command Query Responsibility Segregation)
+- Asynchronous communication via messaging systems
+
+Each service is independently deployable and communicates using REST APIs, message queues, or event streams.
+
+---
+
+## Technologies Used
+
+### Backend
+- FastAPI
+- Python
+- JWT Authentication
+
+### Frontend
+- Web: React + Vite
+- Mobile: React Native + Expo
+- Desktop: Electron (Administrator only)
+
+### Infrastructure & DevOps
+- Docker & Docker Compose
+- Turborepo (Monorepo)
+- Nginx (API Gateway)
+
+### Databases & Messaging
+- PostgreSQL – transactional data
+- MongoDB – logs and audit data
+- Redis – caching
+- RabbitMQ – command and notification messaging
+- Kafka – event streaming and audit logs
+- MQTT Bridge – real-time messaging integration
+
+---
+
+## Microservices
+
+- `api-gateway` – Central entry point and routing
+- `auth-service` – Authentication and authorization
+- `user-service` – User management
+- `classroom-service` – Classroom management
+- `booking-command` – Reservation creation and cancellation
+- `booking-query` – Reservation read model
+- `timetable-engine` – Schedule conflict validation
+- `notification-service` – Email and system notifications
+- `audit-log-service` – System audit logging
+- `maintenance-service` – Maintenance ticket management
+- `reporting-service` – Reports and analytics
+- `mqtt-bridge` – MQTT message integration
+
+---
+
+## Repository Structure
+
+This project uses a **monorepo structure** managed with Turborepo:
+```
+apps/
+├─ api-gateway
+├─ auth-service
+├─ user-service
+├─ classroom-service
+├─ booking-command
+├─ booking-query
+├─ timetable-engine
+├─ notification-service
+├─ audit-log-service
+├─ maintenance-service
+├─ reporting-service
+├─ mqtt-bridge
+├─ front-web
+├─ front-mobile
+└─ front-desktop
+packages/
+├─ shared
+└─ config
+```
+---
+
+## Environment Configuration
+
+An example environment configuration file is provided:
+
+.env.example
+
+Create a `.env` file based on this template and adjust values as required before running the project.
+
+---
+
+## Development Setup
+
+### Prerequisites
+- Node.js
+- Docker & Docker Compose
+- npm
+
+### Installation dependencies
 
 ```sh
-npx create-turbo@latest
+npm install
 ```
 
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+### Run Development Environment
+```sh
+npm run dev
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+This command:
+- Starts infrastructure services (databases, messaging systems)
+- Launches backend microservices
+- Runs frontend web, mobile, and desktop applications
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+### Testing
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+Each microservice includes unit tests using appropriate testing frameworks
+(e.g., Pytest, Jest), which can be integrated into CI pipelines.
 
-### Develop
+### Security & Auditing
 
-To develop all apps and packages, run the following command:
+- JWT-based authentication
+- Role-based access control
+- Centralized audit logging
+- Secure handling of environment variables
 
-```
-cd my-turborepo
+### Academic Context
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+This project was developed as a university-level academic project, applying concepts from:
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+- Distributed Systems
+- Software Architecture
+- DevOps and CI/CD
+- Software Quality and Auditing
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+#### Authors
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+ClaReSys Project Team
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+#### License
 
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+This project is intended for academic and educational purposes only.
