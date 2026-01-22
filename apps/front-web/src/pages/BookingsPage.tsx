@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { listBookings } from "../api/bookingsQuery";
 import type { BookingView } from "../api/bookingsQuery";
 import { listClassrooms } from "../api/classrooms";
 import type { Classroom } from "../api/classrooms";
 import { listUsers } from "../api/users";
 import type { User } from "../api/users";
+import { useMqttTopic } from "../hooks/useMqttTopic";
 
 export default function BookingsPage() {
   const [items, setItems] = useState<BookingView[]>([]);
@@ -13,16 +14,13 @@ export default function BookingsPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // filtros
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [classroomId, setClassroomId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
 
-  // paginación
   const [limit, setLimit] = useState<number>(50);
   const [offset, setOffset] = useState<number>(0);
 
-  // catálogos
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loadingCatalogs, setLoadingCatalogs] = useState(false);
@@ -57,13 +55,13 @@ export default function BookingsPage() {
       setClassrooms(cls);
       setUsers(us);
     } catch {
-      // no bloquea la página si falla
+
     } finally {
       setLoadingCatalogs(false);
     }
   };
 
-  const loadBookings = async () => {
+  const loadBookings = useCallback(async () => {
     setLoading(true);
     setErr(null);
     try {
@@ -88,7 +86,7 @@ export default function BookingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, classroomId, userId, limit, offset]);
 
   useEffect(() => {
     loadCatalogs();
@@ -96,9 +94,14 @@ export default function BookingsPage() {
 
   useEffect(() => {
     loadBookings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, classroomId, userId, limit, offset]);
+  }, [loadBookings]);
 
+  useMqttTopic("claresys/events/+", (msg) => {
+    const ev = msg?.event as string | undefined;
+    if (ev === "booking.created" || ev === "booking.canceled") {
+      loadBookings();
+    }
+  });
   const onClear = () => {
     setStatusFilter("");
     setClassroomId("");
@@ -165,7 +168,7 @@ export default function BookingsPage() {
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: 6 }}>Limit</label>
+            <label style={{ display: "block", marginBottom: 6 }}>Limite</label>
             <input
               type="number"
               min={1}
@@ -204,13 +207,13 @@ export default function BookingsPage() {
         <table width="100%" cellPadding={8} style={{ borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th align="left">booking_id</th>
-              <th align="left">aula (code)</th>
-              <th align="left">usuario (email)</th>
-              <th align="left">status</th>
-              <th align="left">start_time</th>
-              <th align="left">end_time</th>
-              <th align="left">subject</th>
+              <th align="left">ID reserva</th>
+              <th align="left">Aula (code)</th>
+              <th align="left">Usuario (email)</th>
+              <th align="left">Estado</th>
+              <th align="left">Inicio</th>
+              <th align="left">Fin</th>
+              <th align="left">Motivo</th>
             </tr>
           </thead>
           <tbody>

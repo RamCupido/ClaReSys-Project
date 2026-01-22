@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { createUser, deleteUser, listUsers, updateUser } from "../api/users";
 import type { User } from "../api/users";
 
-const roles: User["role"][] = ["ADMIN", "TEACHER", "STUDENT"];
+const roles: User["role"][] = ["ADMIN", "TEACHER"];
 
 export default function UsersPage() {
   const [items, setItems] = useState<User[]>([]);
