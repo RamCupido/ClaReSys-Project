@@ -201,6 +201,13 @@ resource "aws_security_group" "ops" {
     cidr_blocks = [var.my_ip_cidr]
   }
 
+  ingress {
+    from_port       = 8083
+    to_port         = 8083
+    protocol        = "tcp"
+    security_groups = [aws_security_group.edge.id]
+  }
+
   egress { 
     from_port = 0 
     to_port = 0 

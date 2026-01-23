@@ -9,18 +9,19 @@ RUN npm ci
 
 COPY . .
 
-RUN npm --prefix apps/front-web run build
+RUN npm --prefix apps/front-web run build:qa
 
 FROM nginx:alpine
 COPY --from=build /repo/apps/front-web/dist /usr/share/nginx/html
 
-# SPA fallback
-RUN printf "server {\n\
-  listen 80;\n\
-  server_name _;\n\
-  root /usr/share/nginx/html;\n\
-  index index.html;\n\
-  location / {\n\
-    try_files \\$uri \\$uri/ /index.html;\n\
-  }\n\
-}\n" > /etc/nginx/conf.d/default.conf
+RUN cat > /etc/nginx/conf.d/default.conf <<'EOF'
+server {
+  listen 80;
+  server_name _;
+  root /usr/share/nginx/html;
+  index index.html;
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+}
+EOF

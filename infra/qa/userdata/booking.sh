@@ -144,25 +144,20 @@ http {
     }
 
     location /api/v1/bookings/ {
-      proxy_pass http://booking-command:8000;
+      proxy_pass http://booking-command:8000/api/v1/bookings/;
       proxy_set_header Host $host;
       proxy_set_header Authorization $http_authorization;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
       proxy_set_header X-Request-Id $request_id;
-      proxy_set_header X-User-Id $http_x_user_id;
-      proxy_set_header X-User-Role $http_x_user_role;
     }
 
     location /api/v1/queries/ {
-      proxy_pass http://booking-query:8000;
+      proxy_pass http://booking-query:8000/api/v1/queries/;
       proxy_set_header Host $host;
       proxy_set_header Authorization $http_authorization;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Request-Id $request_id;
-      proxy_set_header X-User-Id $http_x_user_id;
-      proxy_set_header X-User-Role $http_x_user_role;
     }
   }
 }

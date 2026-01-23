@@ -2,6 +2,8 @@
 set -euo pipefail
 systemctl enable --now docker || true
 
+docker network create edge-net || true
+
 mkdir -p /opt/nginx
 
 cat > /opt/nginx/nginx.conf <<EOF
@@ -24,7 +26,6 @@ http {
   server {
     listen 80;
 
-    # QA: CORS abierto (restringe en prod)
     add_header 'Access-Control-Allow-Origin' '*' always;
     add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
     add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type, Accept, Origin, X-Requested-With, X-Request-Id, X-User-Id, X-User-Role' always;
@@ -38,7 +39,7 @@ http {
     }
 
     location /api/v1/classrooms/ {
-      proxy_pass http://${classroom_private_ip}:80/api/v1/classrooms/;
+      proxy_pass http://${classroom_private_ip}:80;
       proxy_set_header Host \$host;
       proxy_set_header Authorization \$http_authorization;
       proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -121,14 +122,40 @@ http {
       proxy_set_header X-User-Id \$http_x_user_id;
       proxy_set_header X-User-Role \$http_x_user_role;
     }
+
+    location /mqtt {
+      proxy_pass http://${ops_private_ip}:8083/mqtt;
+      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto \$scheme;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade \$http_upgrade;
+      proxy_set_header Connection "upgrade";
+      proxy_set_header Host \$host;
+      proxy_read_timeout 3600s;
+    }
+
+    location / {
+      proxy_pass http://front-web:80;
+      proxy_set_header Host \$host;
+      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto \$scheme;
+    }
   }
 }
 EOF
+
+docker rm -f front-web >/dev/null 2>&1 || true
+docker pull "augusto573/front-web:qa"
+docker run -d --name front-web \
+  --restart=always \
+  --network edge-net \
+  "augusto573/front-web:qa"
 
 docker rm -f api-gateway >/dev/null 2>&1 || true
 docker pull "${edge_image}"
 docker run -d --name api-gateway \
   --restart=always \
+  --network edge-net \
   -p 80:80 \
   -v /opt/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
   "${edge_image}"
