@@ -1,0 +1,5 @@
+classroom_image   = "augusto573/classroom-service:latest"
+db_user           = "admin"
+db_password       = "password123"
+classroom_db_name = "classroom_db"
+kafka_topic_audit = "audit.logs"
