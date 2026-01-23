@@ -104,6 +104,14 @@ resource "aws_security_group" "classroom" {
     cidr_blocks = [var.my_ip_cidr]
   }
 
+  # Permitir llamadas internas desde OPS a classroom
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ops.id]
+  }
+
   egress {
     from_port = 0
     to_port = 0
@@ -150,6 +158,42 @@ resource "aws_security_group" "booking" {
     security_groups = [aws_security_group.edge.id]
   }
 
+  # Permitir llamadas internas desde OPS a booking-gateway
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ops.id]
+  }
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip_cidr]
+  }
+
+  egress { 
+    from_port = 0 
+    to_port = 0 
+    protocol = "-1" 
+    cidr_blocks = ["0.0.0.0/0"] 
+  }
+}
+
+resource "aws_security_group" "ops" {
+  name   = "qa-ops-sg"
+  vpc_id = data.aws_vpc.default.id
+
+  # Solo EDGE puede llamar al gateway OPS por HTTP
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.edge.id]
+  }
+
+  # SSH temporal para debug (quítalo al final)
   ingress {
     from_port   = 22
     to_port     = 22
@@ -166,7 +210,7 @@ resource "aws_security_group" "booking" {
 }
 
 # -------------------------
-# EC2: Classroom (backend real)
+# EC2: Groups
 # -------------------------
 resource "aws_instance" "classroom" {
   count                  = var.enable_classroom ? 1 : 0
@@ -238,6 +282,50 @@ resource "aws_instance" "booking" {
   tags = { Name = "qa-booking" }
 }
 
+resource "aws_instance" "ops" {
+  count                  = var.enable_ops ? 1 : 0
+  ami                    = var.ami_id
+  instance_type          = var.ops_instance_type
+  subnet_id              = local.subnet_ids[0]
+  key_name               = var.key_name
+  vpc_security_group_ids = [aws_security_group.ops.id]
+
+  user_data = templatefile("${path.module}/userdata/ops.sh", {
+    audit_image        = var.audit_image
+    maintenance_image  = var.maintenance_image
+    reporting_image    = var.reporting_image
+    notification_image = var.notification_image
+    mqtt_bridge_image  = var.mqtt_bridge_image
+
+    mongo_user     = var.mongo_user
+    mongo_password = var.mongo_password
+    mongo_db       = var.mongo_db
+
+    rabbit_user     = var.rabbit_user
+    rabbit_password = var.rabbit_password
+    rabbit_exchange_domain = var.rabbit_exchange_domain
+
+    # IPs privadas existentes para reporting
+    booking_private_ip   = aws_instance.booking[0].private_ip
+    classroom_private_ip = aws_instance.classroom[0].private_ip
+
+    request_timeout_seconds = var.request_timeout_seconds
+
+    smtp_host     = var.smtp_host
+    smtp_port     = var.smtp_port
+    smtp_user     = var.smtp_user
+    smtp_password = var.smtp_password
+    from_email    = var.from_email
+    from_name     = var.from_name
+
+    mqtt_topic_prefix = var.mqtt_topic_prefix
+  })
+
+  depends_on = [aws_instance.booking, aws_instance.classroom]
+
+  tags = { Name = "qa-ops" }
+}
+
 # -------------------------
 # EC2: Edge (API Gateway Nginx)
 # -------------------------
@@ -254,6 +342,7 @@ resource "aws_instance" "edge" {
     classroom_private_ip = var.enable_classroom ? aws_instance.classroom[0].private_ip : ""
     identity_private_ip  = var.enable_identity ? aws_instance.identity[0].private_ip : ""
     booking_private_ip = var.enable_booking ? aws_instance.booking[0].private_ip : ""
+    ops_private_ip = var.enable_ops ? aws_instance.ops[0].private_ip : ""
   })
 
   depends_on = [aws_instance.classroom]

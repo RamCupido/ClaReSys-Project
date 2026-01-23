@@ -134,3 +134,96 @@ variable "secret_key" {
   type = string 
   default = "super_secret_for_dev" 
 }
+
+variable "enable_ops" { 
+  type = bool 
+  default = true 
+}
+variable "ops_instance_type" { 
+  type = string 
+  default = "t3.small" 
+}
+
+variable "audit_image" { 
+  type = string 
+  default = "augusto573/audit-log-service:latest" 
+}
+variable "maintenance_image" { 
+  type = string 
+  default = "augusto573/maintenance-service:latest" 
+}
+variable "reporting_image" { 
+  type = string 
+  default = "augusto573/reporting-service:latest" 
+}
+variable "notification_image" { 
+  type = string 
+  default = "augusto573/notification-service:latest" 
+}
+variable "mqtt_bridge_image" { 
+  type = string 
+  default = "augusto573/mqtt-bridge:latest" 
+}
+
+# Mongo
+variable "mongo_user" { 
+  type = string 
+  default = "admin" 
+}
+variable "mongo_password" { 
+  type = string 
+  default = "secure1234" 
+}
+variable "mongo_db" { 
+  type = string 
+  default = "claresys" 
+}
+
+# RabbitMQ
+variable "rabbit_user" { 
+  type = string 
+  default = "guest" 
+}
+variable "rabbit_password" { 
+  type = string 
+  default = "guest" 
+}
+variable "rabbit_exchange_domain" { 
+  type = string 
+  default = "domain.events" 
+}
+
+# Reporting base URLs (apuntarán a IPs privadas de tus instancias ya creadas)
+variable "request_timeout_seconds" { 
+  type = string 
+  default = "10" 
+}
+
+# Notification (NO pongas valores aquí si vas a commitear; usa terraform.tfvars local)
+variable "smtp_host" { 
+  type = string 
+  default = "smtp.gmail.com" 
+}
+variable "smtp_port" { 
+  type = string 
+  default = "587" 
+}
+variable "smtp_user" { 
+  type = string 
+}
+variable "smtp_password" { 
+  type = string 
+}
+variable "from_email" { 
+  type = string 
+}
+variable "from_name" { 
+  type = string 
+  default = "ClaReSys Notificaciones" 
+}
+
+# MQTT (si usas anonymous true, no necesitas user/pass)
+variable "mqtt_topic_prefix" { 
+  type = string 
+  default = "claresys" 
+}

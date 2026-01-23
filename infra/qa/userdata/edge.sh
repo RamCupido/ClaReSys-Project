@@ -91,6 +91,36 @@ http {
       proxy_set_header X-User-Id \$http_x_user_id;
       proxy_set_header X-User-Role \$http_x_user_role;
     }
+
+    location /api/v1/audit-logs {
+      proxy_pass http://${ops_private_ip}:80;
+      proxy_set_header Authorization \$http_authorization;
+      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto \$scheme;
+      proxy_set_header X-Request-Id \$request_id;
+      proxy_set_header X-User-Id \$http_x_user_id;
+      proxy_set_header X-User-Role \$http_x_user_role;
+    }
+
+    location /api/v1/maintenance {
+      proxy_pass http://${ops_private_ip}:80;
+      proxy_set_header Authorization \$http_authorization;
+      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto \$scheme;
+      proxy_set_header X-Request-Id \$request_id;
+      proxy_set_header X-User-Id \$http_x_user_id;
+      proxy_set_header X-User-Role \$http_x_user_role;
+    }
+
+    location /api/v1/reports {
+      proxy_pass http://${ops_private_ip}:80;
+      proxy_set_header Authorization \$http_authorization;
+      proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto \$scheme;
+      proxy_set_header X-Request-Id \$request_id;
+      proxy_set_header X-User-Id \$http_x_user_id;
+      proxy_set_header X-User-Role \$http_x_user_role;
+    }
   }
 }
 EOF
