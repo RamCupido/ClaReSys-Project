@@ -19,10 +19,10 @@ def get_publisher():
     return EventPublisher()
 
 def _should_block(priority: str, status: str) -> bool:
-    return priority == "CRITICAL" and status in ("OPEN", "IN_PROGRESS")
+    return priority == "CRITICO" and status in ("ABIERTO", "EN_PROCESO")
 
 def _should_unblock(priority: str, status: str) -> bool:
-    return priority == "CRITICAL" and status in ("RESOLVED", "CANCELLED")
+    return priority == "CRITICO" and status in ("RESUELTO", "CANCELADO")
 
 @router.post("/tickets", response_model=MaintenanceTicketOut, status_code=201)
 def create_ticket(
@@ -40,7 +40,7 @@ def create_ticket(
         "assigned_to_user_id": None,
         "type": payload.type,
         "priority": payload.priority,
-        "status": "OPEN",
+        "status": "ABIERTO",
         "description": payload.description,
         "created_at": now,
         "updated_at": now,
@@ -55,17 +55,17 @@ def create_ticket(
             "ticket_id": ticket_id,
             "classroom_id": payload.classroom_id,
             "priority": payload.priority,
-            "status": "OPEN",
+            "status": "ABIERTO",
         }),
     )
 
-    if _should_block(payload.priority, "OPEN"):
+    if _should_block(payload.priority, "ABIERTO"):
         pub.publish(
             "classroom.blocked_by_maintenance",
             build_event("maintenance-service", "classroom.blocked_by_maintenance", {
                 "classroom_id": payload.classroom_id,
                 "ticket_id": ticket_id,
-                "reason": "CRITICAL maintenance ticket open",
+                "reason": "CRITICO maintenance ticket ABIERTO",
             }),
         )
 
@@ -126,9 +126,9 @@ def update_ticket(
         update["description"] = patch.description
     if patch.status is not None:
         update["status"] = patch.status
-        if patch.status == "RESOLVED":
+        if patch.status == "RESUELTO":
             update["resolved_at"] = now
-        if patch.status == "CANCELLED":
+        if patch.status == "CANCELADO":
             update["resolved_at"] = None
 
     prev_priority = doc["priority"]
@@ -150,7 +150,7 @@ def update_ticket(
         }),
     )
 
-    if prev_status != "RESOLVED" and new_status == "RESOLVED":
+    if prev_status != "RESUELTO" and new_status == "RESUELTO":
         pub.publish(
             "maintenance.ticket.resolved",
             build_event("maintenance-service", "maintenance.ticket.resolved", {
@@ -159,7 +159,7 @@ def update_ticket(
             }),
         )
 
-    if prev_status != "CANCELLED" and new_status == "CANCELLED":
+    if prev_status != "CANCELADO" and new_status == "CANCELADO":
         pub.publish(
             "maintenance.ticket.canceled",
             build_event("maintenance-service", "maintenance.ticket.canceled", {
@@ -174,7 +174,7 @@ def update_ticket(
             build_event("maintenance-service", "classroom.blocked_by_maintenance", {
                 "classroom_id": new_doc["classroom_id"],
                 "ticket_id": ticket_id,
-                "reason": "CRITICAL maintenance ticket active",
+                "reason": "CRITICO maintenance ticket active",
             }),
         )
 
@@ -184,7 +184,7 @@ def update_ticket(
             build_event("maintenance-service", "classroom.unblocked_by_maintenance", {
                 "classroom_id": new_doc["classroom_id"],
                 "ticket_id": ticket_id,
-                "reason": "CRITICAL maintenance ticket closed",
+                "reason": "CRITICO maintenance ticket closed",
             }),
         )
 
