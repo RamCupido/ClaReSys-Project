@@ -3,7 +3,6 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [ "features" ]
-  # Permite ejecutarlo manualmente desde la pestaña Actions si es necesario
   workflow_dispatch:
 
 env:
@@ -16,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # --- Servicios que requieren contexto RAÍZ (acceso a /packages/common) ---
+
           - service: classroom-service
             context: .
             dockerfile: apps/classroom-service/Dockerfile
@@ -53,7 +52,6 @@ jobs:
             context: .
             dockerfile: apps/reporting-service/Dockerfile
 
-          # --- Servicios con contexto AISLADO (según tu docker-compose) ---
           - service: timetable-engine
             context: ./apps/timetable-engine
             dockerfile: ./apps/timetable-engine/Dockerfile
@@ -61,6 +59,10 @@ jobs:
           - service: api-gateway
             context: ./apps/api-gateway
             dockerfile: ./apps/api-gateway/Dockerfile
+          
+          - service: mqtt-bridge
+            context: ./apps/mqtt-bridge
+            Dockerfile: ./apps/mqtt-bridge/Dockerfile
 
     steps:
       - name: Checkout code
