@@ -64,10 +64,6 @@ jobs:
             context: ./apps/mqtt-bridge
             Dockerfile: ./apps/mqtt-bridge/Dockerfile
           
-          - service: front-web
-            context: ./apps/front-web
-            Dockerfile: ./apps/front-web/Dockerfile
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
