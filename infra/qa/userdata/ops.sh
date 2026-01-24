@@ -62,6 +62,7 @@ docker rm -f emqx >/dev/null 2>&1 || true
 docker run -d --name emqx \
   --restart=always \
   --network claresys \
+  -p 8083:8083 \
   -e EMQX_ALLOW_ANONYMOUS=true \
   -v /srv/data/emqx:/opt/emqx/data \
   emqx/emqx:5.3.0
