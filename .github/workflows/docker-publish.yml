@@ -63,7 +63,7 @@ jobs:
           - service: mqtt-bridge
             context: ./apps/mqtt-bridge
             Dockerfile: ./apps/mqtt-bridge/Dockerfile
-
+          
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

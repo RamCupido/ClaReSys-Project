@@ -7,7 +7,7 @@ function Item({ to, label }: { to: string; label: string }) {
     <NavLink
       to={to}
       end
-      className={({ isActive }) =>
+      className={({ isActive }: { isActive: boolean }) =>
         [
           "block rounded-xl px-3 py-2 text-sm font-semibold transition",
           isActive

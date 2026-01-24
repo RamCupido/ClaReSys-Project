@@ -1,8 +1,10 @@
 import axios from "axios";
 import { storage } from "../auth/storage";
 
+const baseURL = (import.meta.env.VITE_API_BASE_URL || "").trim();
+
 export const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL,
   timeout: 15000,
 });
 

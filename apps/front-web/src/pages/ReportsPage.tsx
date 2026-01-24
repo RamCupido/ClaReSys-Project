@@ -10,7 +10,7 @@ function toBackendDateTime(dtLocal: string) {
   return dtLocal && dtLocal.length === 16 ? `${dtLocal}:00` : dtLocal;
 }
 
-function openBlobPdf(blob: Blob, filename: string) {
+function openBlobPdf(blob: Blob) {
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank", "noopener,noreferrer");
 }
@@ -56,7 +56,7 @@ export default function ReportsPage() {
     setLoading(true);
     try {
       const pdf = await getClassroomReportPdf(classroomId, from, to);
-      openBlobPdf(pdf, `classroom-report-${classroomId}.pdf`);
+      openBlobPdf(pdf);
     } catch (e: any) {
       setErr(e?.response?.data?.detail ?? "Error generando reporte de aula.");
     } finally {
@@ -70,7 +70,7 @@ export default function ReportsPage() {
     setLoading(true);
     try {
       const pdf = await getUserReportPdf(userId, from, to);
-      openBlobPdf(pdf, `user-report-${userId}.pdf`);
+      openBlobPdf(pdf);
     } catch (e: any) {
       setErr(e?.response?.data?.detail ?? "Error generando reporte de usuario.");
     } finally {

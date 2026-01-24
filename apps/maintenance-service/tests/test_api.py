@@ -103,14 +103,14 @@ def test_create_list_update(monkeypatch):
     r1 = client.post("/api/v1/maintenance/tickets", json={
         "classroom_id": "c1",
         "reported_by_user_id": "u1",
-        "type": "PROJECTOR",
-        "priority": "CRITICAL",
+        "type": "PROYECTOR",
+        "priority": "CRITICO",
         "description": "Projector broken"
     })
     assert r1.status_code == 201, r1.text
     created = r1.json()
-    assert created["status"] == "OPEN"
-    assert created["priority"] == "CRITICAL"
+    assert created["status"] == "ABIERTO"
+    assert created["priority"] == "CRITICO"
     ticket_id = created["ticket_id"]
 
     # list
@@ -119,9 +119,9 @@ def test_create_list_update(monkeypatch):
     assert r2.json()["total"] == 1
 
     # update to RESOLVED
-    r3 = client.patch(f"/api/v1/maintenance/tickets/{ticket_id}", json={"status": "RESOLVED"})
+    r3 = client.patch(f"/api/v1/maintenance/tickets/{ticket_id}", json={"status": "RESUELTO"})
     assert r3.status_code == 200
-    assert r3.json()["status"] == "RESOLVED"
+    assert r3.json()["status"] == "RESUELTO"
 
     # published events (created, blocked, updated, resolved, unblocked)
     keys = [k for (k, _p) in fake_pub.events]

@@ -33,7 +33,7 @@ locals {
 # Security Groups
 # -------------------------
 resource "aws_security_group" "alb" {
-  name   = "qa-alb-sg"
+  name   = "prod-alb-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
@@ -52,7 +52,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_security_group" "edge" {
-  name   = "qa-edge-sg"
+  name   = "prod-edge-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
@@ -78,7 +78,7 @@ resource "aws_security_group" "edge" {
 }
 
 resource "aws_security_group" "classroom" {
-  name   = "qa-classroom-sg"
+  name   = "prod-classroom-sg"
   vpc_id = data.aws_vpc.default.id
 
   # Solo EDGE puede llamar al classroom por HTTP
@@ -121,7 +121,7 @@ resource "aws_security_group" "classroom" {
 }
 
 resource "aws_security_group" "identity" {
-  name   = "qa-identity-sg"
+  name   = "prod-identity-sg"
   vpc_id = data.aws_vpc.default.id
 
   # HTTP solo desde EDGE
@@ -148,7 +148,7 @@ resource "aws_security_group" "identity" {
 }
 
 resource "aws_security_group" "booking" {
-  name   = "qa-booking-sg"
+  name   = "prod-booking-sg"
   vpc_id = data.aws_vpc.default.id
 
   ingress {
@@ -182,7 +182,7 @@ resource "aws_security_group" "booking" {
 }
 
 resource "aws_security_group" "ops" {
-  name   = "qa-ops-sg"
+  name   = "prod-ops-sg"
   vpc_id = data.aws_vpc.default.id
 
   # Solo EDGE puede llamar al gateway OPS por HTTP
@@ -236,7 +236,7 @@ resource "aws_instance" "classroom" {
     kafka_topic_audit   = var.kafka_topic_audit
   })
 
-  tags = { Name = "qa-classroom" }
+  tags = { Name = "prod-classroom" }
 }
 
 resource "aws_instance" "identity" {
@@ -257,7 +257,7 @@ resource "aws_instance" "identity" {
     users_db_name  = var.users_db_name
   })
 
-  tags = { Name = "qa-identity" }
+  tags = { Name = "prod-identity" }
 }
 
 resource "aws_instance" "booking" {
@@ -286,7 +286,7 @@ resource "aws_instance" "booking" {
 
   depends_on = [aws_instance.classroom]
 
-  tags = { Name = "qa-booking" }
+  tags = { Name = "prod-booking" }
 }
 
 resource "aws_instance" "ops" {
@@ -330,7 +330,7 @@ resource "aws_instance" "ops" {
 
   depends_on = [aws_instance.booking, aws_instance.classroom]
 
-  tags = { Name = "qa-ops" }
+  tags = { Name = "prod-ops" }
 }
 
 # -------------------------
@@ -353,21 +353,21 @@ resource "aws_instance" "edge" {
   })
 
   depends_on = [aws_instance.classroom]
-  tags = { Name = "qa-edge" }
+  tags = { Name = "prod-edge" }
 }
 
 # -------------------------
 # ALB -> EDGE
 # -------------------------
-resource "aws_lb" "qa" {
-  name               = "qa-claresys-alb"
+resource "aws_lb" "prod" {
+  name               = "prod-claresys-alb"
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = local.subnet_ids
 }
 
 resource "aws_lb_target_group" "edge" {
-  name     = "qa-edge-tg"
+  name     = "prod-edge-tg"
   port     = 80
   protocol = "HTTP"
   vpc_id   = data.aws_vpc.default.id
@@ -383,7 +383,7 @@ resource "aws_lb_target_group" "edge" {
 }
 
 resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.qa.arn
+  load_balancer_arn = aws_lb.prod.arn
   port              = 80
   protocol          = "HTTP"
 
